@@ -12,6 +12,7 @@
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="리밸런서">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
   :root{
     --bg:#0a0e14; --panel:#111722; --panel2:#161d2b; --line:#232b3a;
@@ -48,6 +49,10 @@
     display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px -4px rgba(0,0,0,.4)}
   .g-btn:active{transform:scale(.97)}
   .scope-note{margin-top:16px;font-size:11px;color:var(--dim);max-width:260px;line-height:1.6}
+  .auto-checking{display:flex;flex-direction:column;align-items:center;gap:12px;
+    color:var(--dim);font-size:12.5px}
+  .auto-checking .spinner{width:22px;height:22px;border-radius:50%;
+    border:2.5px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
 
   /* ---- 상태 메시지 ---- */
   .state-box{margin:60px 16px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
@@ -57,6 +62,16 @@
 
   /* ---- 추세 신호 ---- */
   .trend-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 18px}
+  .chart-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    padding:14px;margin-bottom:14px}
+  .chart-title{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:10px}
+  .chart-box{position:relative;height:190px}
+  .chip-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;
+    -webkit-overflow-scrolling:touch}
+  .chip-row::-webkit-scrollbar{display:none}
+  .chip{flex-shrink:0;font-size:11.5px;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--line);border-radius:999px;padding:5px 12px;white-space:nowrap}
+  .chip.active{background:rgba(76,141,255,.16);border-color:var(--accent);color:var(--accent);font-weight:600}
   .trend-cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;
     padding:12px 8px;text-align:center}
   .trend-cell .sym{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.03em}
@@ -129,11 +144,17 @@
   <div class="mark">📊</div>
   <h2>리밸런서 모바일</h2>
   <p>PC 리밸런서가 구글 드라이브에 저장한<br>최신 데이터를 읽기 전용으로 확인합니다.</p>
-  <button class="g-btn" onclick="login()">
-    <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9.1h11.9c-.5 2.8-2.1 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.5-9.5 6.5-16.8z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 40.9 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.8 27.2c-.4-1.3-.7-2.7-.7-4.2s.2-2.9.7-4.2v-5.7H4.5C3 16 2 19.9 2 24s1 8 4.5 10.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8.1 7.1 4.5 13.1l7.3 5.7c1.7-5.2 6.5-9 12.2-9.1z"/></svg>
-    구글로 로그인
-  </button>
-  <div class="scope-note">읽기 전용 권한만 요청합니다. 이 페이지는 파일을 수정하거나 삭제할 수 없습니다.</div>
+  <div id="autoChecking" class="auto-checking">
+    <div class="spinner"></div>
+    <div>로그인 확인 중…</div>
+  </div>
+  <div id="loginBtnWrap" style="display:none;flex-direction:column;align-items:center">
+    <button class="g-btn" onclick="login()">
+      <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9.1h11.9c-.5 2.8-2.1 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.5-9.5 6.5-16.8z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 40.9 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.8 27.2c-.4-1.3-.7-2.7-.7-4.2s.2-2.9.7-4.2v-5.7H4.5C3 16 2 19.9 2 24s1 8 4.5 10.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8.1 7.1 4.5 13.1l7.3 5.7c1.7-5.2 6.5-9 12.2-9.1z"/></svg>
+      구글로 로그인
+    </button>
+    <div class="scope-note">읽기 전용 권한만 요청합니다. 이 페이지는 파일을 수정하거나 삭제할 수 없습니다.</div>
+  </div>
 </div>
 
 <div id="app">
@@ -165,26 +186,38 @@ let tokenClient = null;
 let accessToken = null;
 let DATA = null;
 let openAccts = {};
+let charts = {};
 
 function initGoogle(){
   tokenClient = google.accounts.oauth2.initTokenClient({
     client_id: CLIENT_ID,
     scope: SCOPE,
     callback: (resp) => {
-      if (resp.error) { showError('로그인에 실패했습니다: ' + resp.error); return; }
+      clearTimeout(autoLoginTimeout);
+      if (resp.error) {
+        // 자동(조용한) 로그인 실패 → 버튼이 있는 로그인 화면 그대로 노출
+        setAutoChecking(false);
+        return;
+      }
       accessToken = resp.access_token;
-      sessionStorage.setItem('gtoken', accessToken);
       showApp();
       loadPortfolio();
     }
   });
-  // 세션 안에서 이미 로그인했던 토큰이 있으면 재사용 시도
-  const saved = sessionStorage.getItem('gtoken');
-  if (saved) {
-    accessToken = saved;
-    showApp();
-    loadPortfolio();
-  }
+  // 페이지를 열 때마다 자동으로 시도: 브라우저에 구글 로그인이 남아있고
+  // 이전에 이 페이지에 권한을 허용했다면, 버튼 없이 조용히 새 토큰을 받아온다.
+  setAutoChecking(true);
+  tokenClient.requestAccessToken({ prompt: '' });
+  // 혹시 콜백이 안 오는 경우를 대비한 안전장치
+  autoLoginTimeout = setTimeout(() => setAutoChecking(false), 4000);
+}
+
+let autoLoginTimeout = null;
+function setAutoChecking(on){
+  const btn = document.getElementById('loginBtnWrap');
+  const checking = document.getElementById('autoChecking');
+  if (btn) btn.style.display = on ? 'none' : 'flex';
+  if (checking) checking.style.display = on ? 'block' : 'none';
 }
 
 function login(){
@@ -192,21 +225,41 @@ function login(){
 }
 function logout(){
   if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
-  sessionStorage.removeItem('gtoken');
   accessToken = null; DATA = null;
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
+  setAutoChecking(false);
 }
 function showApp(){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
 
-async function driveFetch(url){
+async function driveFetch(url, retried){
   const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
-  if (r.status === 401) { sessionStorage.removeItem('gtoken'); throw new Error('로그인이 만료됐습니다. 다시 로그인해주세요.'); }
+  if (r.status === 401) {
+    if (!retried) {
+      // 토큰이 만료됐으면 조용히 한 번 더 재발급 시도 후 재요청
+      const refreshed = await silentRefresh();
+      if (refreshed) return driveFetch(url, true);
+    }
+    throw new Error('로그인이 만료됐습니다. 다시 로그인해주세요.');
+  }
   if (!r.ok) throw new Error('구글 드라이브 요청 실패 (' + r.status + ')');
   return r.json();
+}
+
+function silentRefresh(){
+  return new Promise((resolve) => {
+    const prevCb = tokenClient.callback;
+    tokenClient.callback = (resp) => {
+      tokenClient.callback = prevCb;
+      if (resp.error) { resolve(false); return; }
+      accessToken = resp.access_token;
+      resolve(true);
+    };
+    tokenClient.requestAccessToken({ prompt: '' });
+  });
 }
 
 async function loadPortfolio(){
@@ -349,6 +402,25 @@ function render(){
   let html = '';
   html += `<div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>`;
 
+  // ---- 수익 금액 (계좌 선택) ----
+  const acctNames = (DATA.accounts || []).map(a => a.name);
+  const chips = ['__all__', ...acctNames].map(key => {
+    const label = key === '__all__' ? '전체' : key;
+    const active = (selectedProfitAcct === key) ? 'active' : '';
+    return `<div class="chip ${active}" onclick="selectProfitAcct('${key.replace(/'/g,"\\'")}')">${label}</div>`;
+  }).join('');
+  html += `<div class="chart-card">
+    <div class="chart-title">수익 금액</div>
+    <div class="chip-row">${chips}</div>
+    <div class="chart-box"><canvas id="historyChart"></canvas></div>
+  </div>`;
+
+  // ---- 주식 비중 및 수익률 ----
+  html += `<div class="chart-card">
+    <div class="chart-title">주식 비중 및 수익률</div>
+    <div class="chart-box"><canvas id="ratioChart"></canvas></div>
+  </div>`;
+
   let grandTotal = 0, grandProfit = 0;
   (DATA.accounts || []).forEach(acc => {
     const r = computeAccount(acc, fx, settings, market);
@@ -419,6 +491,92 @@ function render(){
   html += `<div class="footer-note">보기 전용 페이지입니다 · 데이터 수정은 PC 리밸런서에서만 가능합니다</div>`;
 
   document.getElementById('content').innerHTML = html;
+  renderHistoryChart();
+  renderRatioChart();
+}
+
+let selectedProfitAcct = '__all__';
+function selectProfitAcct(key){
+  selectedProfitAcct = key;
+  render();
+}
+
+const CHART_COLORS = ['#4c8dff','#e8834a','#3fb950','#c9a227','#a371f7','#f778ba'];
+
+function renderHistoryChart(){
+  const cv = document.getElementById('historyChart');
+  if (!cv || !window.Chart) return;
+  const history = DATA.history || [];
+  const labels = history.map(r => r.date);
+
+  let dataset;
+  if (selectedProfitAcct === '__all__') {
+    const data = history.map(r => {
+      const vals = Object.values(r.profits || {}).filter(v => v != null);
+      return vals.length ? vals.reduce((a,b) => a+b, 0) : null;
+    });
+    dataset = { label: '전체', data, borderColor: CHART_COLORS[0], backgroundColor: CHART_COLORS[0] };
+  } else {
+    const idx = (DATA.accounts || []).findIndex(a => a.name === selectedProfitAcct);
+    const color = CHART_COLORS[Math.max(0, idx) % CHART_COLORS.length];
+    const data = history.map(r => (r.profits && r.profits[selectedProfitAcct] != null) ? r.profits[selectedProfitAcct] : null);
+    dataset = { label: selectedProfitAcct, data, borderColor: color, backgroundColor: color };
+  }
+
+  if (charts.historyChart) charts.historyChart.destroy();
+  charts.historyChart = new Chart(cv, {
+    type: 'line',
+    data: { labels, datasets: [{ ...dataset, tension: .25, pointRadius: 2, spanGaps: true }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      interaction: { mode: 'index', intersect: false },
+      plugins: {
+        legend: { display: false },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + won(c.parsed.y) + '원' } }
+      },
+      scales: {
+        x: { ticks: { color: '#5c6773', maxTicksLimit: 6, font: { size: 10 } }, grid: { color: '#20272f' } },
+        y: { ticks: { color: '#5c6773', font: { size: 10 }, callback: v => (v/1e6).toFixed(0)+'M' }, grid: { color: '#20272f' } }
+      }
+    }
+  });
+}
+
+function renderRatioChart(){
+  const cv = document.getElementById('ratioChart');
+  if (!cv || !window.Chart) return;
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const settings = DATA.settings || {}, market = DATA.market || {};
+  const names = [], cur = [], tgt = [], rate = [];
+  (DATA.accounts || []).forEach(acc => {
+    const r = computeAccount(acc, fx, settings, market);
+    names.push(acc.name);
+    cur.push(+(r.stockRatio*100).toFixed(1));
+    tgt.push(r.tRatio != null ? +(r.tRatio*100).toFixed(1) : null);
+    rate.push(r.profitRate != null ? +(r.profitRate*100).toFixed(2) : null);
+  });
+
+  if (charts.ratioChart) charts.ratioChart.destroy();
+  charts.ratioChart = new Chart(cv, {
+    type: 'bar',
+    data: { labels: names, datasets: [
+      { label: '현재 비중', data: cur, backgroundColor: '#4c8dff', yAxisID: 'y', barPercentage: .7, categoryPercentage: .62 },
+      { label: '목표 비중', data: tgt, backgroundColor: '#c9a227', yAxisID: 'y', barPercentage: .7, categoryPercentage: .62 },
+      { label: '수익률', data: rate, backgroundColor: '#e5484d', yAxisID: 'y1', barPercentage: .7, categoryPercentage: .62 },
+    ]},
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { labels: { color: '#8b98a5', boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + (c.parsed.y!=null ? c.parsed.y.toFixed(1) : '-') + '%' } }
+      },
+      scales: {
+        x: { ticks: { color: '#8b98a5', font: { size: 10 } }, grid: { display: false } },
+        y: { position: 'left', min: 0, max: 100, ticks: { color: '#5c6773', font: { size: 9 }, callback: v => v+'%' }, grid: { color: '#20272f' } },
+        y1: { position: 'right', ticks: { color: '#5c6773', font: { size: 9 }, callback: v => v+'%' }, grid: { drawOnChartArea: false } },
+      }
+    }
+  });
 }
 
 window.onload = initGoogle;
