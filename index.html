@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>리밸런서 · 모바일</title>
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+<style>
+  :root{
+    --bg:#0a0e14; --panel:#111722; --panel2:#161d2b; --line:#232b3a;
+    --ink:#e8edf5; --muted:#9aa6b8; --dim:#69748a;
+    --accent:#4c8dff; --up:#e5484d; --down:#3fb950; --gold:#c9a227;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"Pretendard","Apple SD Gothic Neo",sans-serif;
+    -webkit-font-smoothing:antialiased;padding-bottom:40px}
+  .wrap{max-width:520px;margin:0 auto;padding:0 16px}
+
+  header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,var(--bg) 80%,transparent);
+    padding:18px 16px 10px;display:flex;align-items:center;justify-content:space-between}
+  header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.01em}
+  header .sub{font-size:11px;color:var(--dim);margin-top:2px}
+  .icon-btn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    width:36px;height:36px;display:flex;align-items:center;justify-content:center;
+    color:var(--muted);cursor:pointer;font-size:16px;flex-shrink:0}
+  .icon-btn:active{transform:scale(.94)}
+  .icon-btn.spin svg{animation:spin .8s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* ---- 로그인 화면 ---- */
+  #loginScreen{min-height:88vh;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:24px}
+  .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#7c5cff);
+    display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:22px;
+    box-shadow:0 8px 30px -6px rgba(76,141,255,.5)}
+  #loginScreen h2{font-size:19px;margin:0 0 8px;font-weight:700}
+  #loginScreen p{font-size:13px;color:var(--muted);line-height:1.6;max-width:280px;margin:0 0 26px}
+  .g-btn{background:var(--ink);color:#0a0e14;border:none;border-radius:12px;
+    padding:13px 26px;font-size:14px;font-weight:700;cursor:pointer;
+    display:flex;align-items:center;gap:10px;box-shadow:0 6px 20px -4px rgba(0,0,0,.4)}
+  .g-btn:active{transform:scale(.97)}
+  .scope-note{margin-top:16px;font-size:11px;color:var(--dim);max-width:260px;line-height:1.6}
+
+  /* ---- 상태 메시지 ---- */
+  .state-box{margin:60px 16px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
+  .state-box .big{font-size:28px;margin-bottom:10px}
+  .err-box{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);
+    border-radius:12px;padding:16px;margin:16px;font-size:12px;color:#ff9a9d;line-height:1.6}
+
+  /* ---- 추세 신호 ---- */
+  .trend-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 18px}
+  .trend-cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+    padding:12px 8px;text-align:center}
+  .trend-cell .sym{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.03em}
+  .trend-cell .lbl{font-size:13px;font-weight:700;margin-top:4px}
+  .trend-cell .score{font-size:10px;color:var(--dim);margin-top:2px}
+  .trend-cell.none{border-color:rgba(63,185,80,.35)}
+  .trend-cell.watch{border-color:rgba(201,162,39,.4)}
+  .trend-cell.sell{border-color:rgba(232,131,74,.45)}
+  .trend-cell.strong{border-color:rgba(229,72,77,.5)}
+  .trend-cell.none .lbl{color:var(--down)}
+  .trend-cell.watch .lbl{color:var(--gold)}
+  .trend-cell.sell .lbl{color:#e8834a}
+  .trend-cell.strong .lbl{color:var(--up)}
+
+  /* ---- 계좌 카드 ---- */
+  .acct{background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    margin-bottom:12px;overflow:hidden}
+  .acct-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
+    cursor:pointer}
+  .acct-name{font-size:14px;font-weight:700}
+  .acct-sub{font-size:11px;color:var(--dim);margin-top:2px}
+  .acct-right{text-align:right}
+  .acct-total{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
+  .acct-profit{font-size:11px;margin-top:2px;font-variant-numeric:tabular-nums}
+  .acct-chev{color:var(--dim);font-size:11px;margin-left:8px;transition:transform .15s}
+  .acct.open .acct-chev{transform:rotate(180deg)}
+  .up{color:var(--up)} .down{color:var(--down)}
+
+  .holdings{max-height:0;overflow:hidden;transition:max-height .2s ease}
+  .acct.open .holdings{max-height:2000px}
+  .h-row{display:flex;align-items:center;justify-content:space-between;
+    padding:9px 16px;border-top:1px solid var(--line);font-size:12px}
+  .h-name{color:var(--ink);font-weight:600}
+  .h-sub{color:var(--dim);font-size:10.5px;margin-top:1px}
+  .h-right{text-align:right;font-variant-numeric:tabular-nums}
+  .h-val{color:var(--muted)}
+  .h-empty{padding:14px 16px;color:var(--dim);font-size:12px;border-top:1px solid var(--line)}
+
+  .grand{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
+    padding:16px;display:flex;justify-content:space-between;align-items:center;margin:6px 0 20px}
+  .grand .k{font-size:12px;color:var(--muted)}
+  .grand .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
+
+  .footer-note{text-align:center;font-size:10.5px;color:var(--dim);margin-top:24px;line-height:1.7}
+  .footer-note a{color:var(--dim)}
+
+  #app{display:none}
+</style>
+</head>
+<body>
+
+<div id="loginScreen" class="wrap">
+  <div class="mark">📊</div>
+  <h2>리밸런서 모바일</h2>
+  <p>PC 리밸런서가 구글 드라이브에 저장한<br>최신 데이터를 읽기 전용으로 확인합니다.</p>
+  <button class="g-btn" onclick="login()">
+    <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9.1h11.9c-.5 2.8-2.1 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.5-9.5 6.5-16.8z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 40.9 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.8 27.2c-.4-1.3-.7-2.7-.7-4.2s.2-2.9.7-4.2v-5.7H4.5C3 16 2 19.9 2 24s1 8 4.5 10.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8.1 7.1 4.5 13.1l7.3 5.7c1.7-5.2 6.5-9 12.2-9.1z"/></svg>
+    구글로 로그인
+  </button>
+  <div class="scope-note">읽기 전용 권한만 요청합니다. 이 페이지는 파일을 수정하거나 삭제할 수 없습니다.</div>
+</div>
+
+<div id="app">
+  <header>
+    <div>
+      <h1>리밸런서</h1>
+      <div class="sub" id="updatedAt">불러오는 중…</div>
+    </div>
+    <div style="display:flex;gap:8px">
+      <div class="icon-btn" id="refreshBtn" onclick="loadPortfolio()" title="새로고침">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
+      </div>
+      <div class="icon-btn" onclick="logout()" title="로그아웃">⏻</div>
+    </div>
+  </header>
+
+  <div class="wrap">
+    <div id="content"></div>
+  </div>
+</div>
+
+<script>
+const CLIENT_ID = '155085390291-minre2sngn71m9rsjdnssrmlc0u2178q.apps.googleusercontent.com';
+const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+const FOLDER_NAME = 'Rebalancer';
+const FILE_NAME = 'portfolio.json';
+
+let tokenClient = null;
+let accessToken = null;
+let DATA = null;
+let openAccts = {};
+
+function initGoogle(){
+  tokenClient = google.accounts.oauth2.initTokenClient({
+    client_id: CLIENT_ID,
+    scope: SCOPE,
+    callback: (resp) => {
+      if (resp.error) { showError('로그인에 실패했습니다: ' + resp.error); return; }
+      accessToken = resp.access_token;
+      sessionStorage.setItem('gtoken', accessToken);
+      showApp();
+      loadPortfolio();
+    }
+  });
+  // 세션 안에서 이미 로그인했던 토큰이 있으면 재사용 시도
+  const saved = sessionStorage.getItem('gtoken');
+  if (saved) {
+    accessToken = saved;
+    showApp();
+    loadPortfolio();
+  }
+}
+
+function login(){
+  tokenClient.requestAccessToken({ prompt: 'consent' });
+}
+function logout(){
+  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
+  sessionStorage.removeItem('gtoken');
+  accessToken = null; DATA = null;
+  document.getElementById('app').style.display = 'none';
+  document.getElementById('loginScreen').style.display = 'flex';
+}
+function showApp(){
+  document.getElementById('loginScreen').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+async function driveFetch(url){
+  const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
+  if (r.status === 401) { sessionStorage.removeItem('gtoken'); throw new Error('로그인이 만료됐습니다. 다시 로그인해주세요.'); }
+  if (!r.ok) throw new Error('구글 드라이브 요청 실패 (' + r.status + ')');
+  return r.json();
+}
+
+async function loadPortfolio(){
+  const btn = document.getElementById('refreshBtn');
+  const content = document.getElementById('content');
+  btn.classList.add('spin');
+  document.getElementById('updatedAt').textContent = '불러오는 중…';
+  try{
+    // 1) Rebalancer 폴더 찾기
+    const fq = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
+    const folderRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)`);
+    const folder = (folderRes.files || [])[0];
+    if (!folder) {
+      showEmpty('구글 드라이브에서 "Rebalancer" 폴더를 찾지 못했습니다.<br>PC에서 Update나 저장을 한 번 해주세요.');
+      return;
+    }
+    // 2) portfolio.json 찾기
+    const ffq = encodeURIComponent(`name='${FILE_NAME}' and '${folder.id}' in parents and trashed=false`);
+    const fileRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${ffq}&fields=files(id,name,modifiedTime)`);
+    const file = (fileRes.files || [])[0];
+    if (!file) {
+      showEmpty('폴더는 있지만 portfolio.json을 찾지 못했습니다.<br>PC에서 저장을 한 번 해주세요.');
+      return;
+    }
+    // 3) 내용 다운로드
+    DATA = await driveFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
+    const d = new Date(file.modifiedTime);
+    document.getElementById('updatedAt').textContent = '마지막 저장 · ' + d.toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    render();
+  } catch(e){
+    showError(e.message || String(e));
+  } finally {
+    btn.classList.remove('spin');
+  }
+}
+
+function showEmpty(msg){
+  document.getElementById('content').innerHTML = `<div class="state-box"><div class="big">📭</div>${msg}</div>`;
+}
+function showError(msg){
+  document.getElementById('content').innerHTML = `<div class="err-box">${msg}</div>`;
+}
+
+const won = n => (n==null||isNaN(n)) ? '-' : Math.round(n).toLocaleString('ko-KR');
+const numUS = n => (n==null||isNaN(n)) ? '-' : Number(n).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:4});
+const pct = n => (n==null||isNaN(n)) ? '-' : ((n>=0?'+':'') + (n*100).toFixed(1) + '%');
+
+// PC 앱(app.py compute_account)과 동일한 계산식
+function computeAccount(acc, fx){
+  let krStock = 0, usStock = 0;
+  const rows = [];
+  (acc.holdings || []).forEach(h => {
+    const price = h.price || 0;
+    const val = (h.qty || 0) * price;
+    const isUS = h.market === 'US';
+    const valKR = isUS ? val * fx : val;
+    if (isUS) usStock += valKR; else krStock += valKR;
+    rows.push({ name: h.name || h.code, code: h.code, qty: h.qty || 0, price, isUS, valKR });
+  });
+  const cash = (acc.cashKRW || 0) + (acc.cashUSD || 0) * fx;
+  const total = krStock + usStock + cash;
+  const seed = acc.seed || 0;
+  const profit = total - seed;
+  const profitRate = seed ? profit / seed : null;
+  rows.sort((a,b) => b.valKR - a.valKR);
+  return { total, profit, profitRate, rows, cash };
+}
+
+function trendCell(sym, sig){
+  const comp = sig && sig[sym] && sig[sym].composite;
+  if (!comp) return `<div class="trend-cell"><div class="sym">${sym}</div><div class="lbl" style="color:var(--dim)">-</div></div>`;
+  const lvlClass = comp.level === 'none' ? 'none' : comp.level === 'watch' ? 'watch' : comp.level === 'sell' ? 'sell' : 'strong';
+  return `<div class="trend-cell ${lvlClass}">
+    <div class="sym">${sym}</div>
+    <div class="lbl">${comp.label}</div>
+    <div class="score">${comp.score}/100</div>
+  </div>`;
+}
+
+function toggleAcct(name){
+  openAccts[name] = !openAccts[name];
+  render();
+}
+
+function render(){
+  if (!DATA) return;
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const sig = DATA.trendSignals;
+
+  let html = '';
+  html += `<div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>`;
+
+  let grandTotal = 0, grandProfit = 0;
+  (DATA.accounts || []).forEach(acc => {
+    const r = computeAccount(acc, fx);
+    grandTotal += r.total; grandProfit += r.profit;
+    const open = !!openAccts[acc.name];
+    const holdingsHtml = r.rows.length
+      ? r.rows.map(row => `
+        <div class="h-row">
+          <div>
+            <div class="h-name">${row.name}</div>
+            <div class="h-sub">${row.qty}${row.isUS ? '주' : '주'} · ${row.isUS ? numUS(row.price) : won(row.price)}${row.isUS?' USD':'원'}</div>
+          </div>
+          <div class="h-right h-val">${won(row.valKR)}원</div>
+        </div>`).join('')
+      : `<div class="h-empty">보유 종목 없음</div>`;
+
+    html += `<div class="acct ${open ? 'open' : ''}">
+      <div class="acct-head" onclick="toggleAcct('${acc.name.replace(/'/g,"\\'")}')">
+        <div>
+          <div class="acct-name">${acc.name}</div>
+          <div class="acct-sub">보유 ${r.rows.length}종목</div>
+        </div>
+        <div style="display:flex;align-items:center">
+          <div class="acct-right">
+            <div class="acct-total">${won(r.total)}원</div>
+            <div class="acct-profit ${r.profit>=0?'up':'down'}">${r.profit>=0?'+':''}${won(r.profit)}원 ${r.profitRate!=null?'('+pct(r.profitRate)+')':''}</div>
+          </div>
+          <div class="acct-chev">▼</div>
+        </div>
+      </div>
+      <div class="holdings">${holdingsHtml}</div>
+    </div>`;
+  });
+
+  html += `<div class="grand">
+    <div>
+      <div class="k">전체 총자산</div>
+      <div class="v">${won(grandTotal)}원</div>
+    </div>
+    <div style="text-align:right">
+      <div class="k">전체 수익금</div>
+      <div class="v ${grandProfit>=0?'up':'down'}" style="font-size:15px">${grandProfit>=0?'+':''}${won(grandProfit)}원</div>
+    </div>
+  </div>`;
+
+  html += `<div class="footer-note">보기 전용 페이지입니다 · 데이터 수정은 PC 리밸런서에서만 가능합니다</div>`;
+
+  document.getElementById('content').innerHTML = html;
+}
+
+window.onload = initGoogle;
+</script>
+</body>
+</html>
