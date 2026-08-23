@@ -37,7 +37,7 @@
   @keyframes spin{to{transform:rotate(360deg)}}
 
   .tabbar{position:sticky;top:62px;z-index:9;background:var(--bg);
-    display:flex;gap:6px;padding:8px 16px 10px;border-bottom:1px solid var(--line)}
+    display:flex;gap:6px;padding:8px 16px 10px;border-bottom:1px solid var(--line);margin-bottom:14px}
   .tab-btn{flex:1;text-align:center;padding:9px 0;border-radius:10px;font-size:13px;
     font-weight:600;color:var(--dim);background:transparent;cursor:pointer}
   .tab-btn.active{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
@@ -68,8 +68,8 @@
     padding:14px;margin-bottom:14px}
   .chart-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
   .chart-title{font-size:12.5px;color:var(--muted);font-weight:600}
-  .fold-btn{color:var(--dim);font-size:11px;padding:4px 6px;cursor:pointer;
-    transition:transform .15s;flex-shrink:0}
+  .fold-btn{color:var(--dim);font-size:18px;padding:4px 8px;cursor:pointer;
+    transition:transform .15s;flex-shrink:0;line-height:1}
   .fold-btn.closed{transform:rotate(-90deg)}
   .fold-body{margin-top:10px}
   .fold-body.hidden{display:none}
@@ -291,7 +291,7 @@ function switchTab(tab){
   document.getElementById('tab-accounts').classList.toggle('active', tab==='accounts');
   document.getElementById('page-summary').classList.toggle('active', tab==='summary');
   document.getElementById('page-accounts').classList.toggle('active', tab==='accounts');
-  if (tab==='summary'){ renderHistoryChart(); renderRatioChart(); if(!isFolded('trendDetail')) renderTrendDetail(); }
+  if (tab==='summary'){ renderHistoryChart(); renderRatioChart(); renderSectorChart(); if(!isFolded('trendDetail')) renderTrendDetail(); }
   else { renderAllPies(); }
 }
 
@@ -496,7 +496,7 @@ function render(){
   if (!DATA) return;
   renderSummaryPage();
   renderAccountsPage();
-  if (activeTab === 'summary'){ renderHistoryChart(); renderRatioChart(); if(!isFolded('trendDetail')) renderTrendDetail(); }
+  if (activeTab === 'summary'){ renderHistoryChart(); renderRatioChart(); renderSectorChart(); if(!isFolded('trendDetail')) renderTrendDetail(); }
   else { renderAllPies(); }
 }
 
@@ -552,11 +552,20 @@ function renderSummaryPage(){
     </div>
   </div>`;
 
+  html += `<div class="chart-card">
+    ${foldHeader('계좌별 섹터 비중','sector')}
+    <div class="fold-body ${isFolded('sector')?'hidden':''}">
+      <select class="trend-sel" id="sectorAcctSel" onchange="onSectorAcctSel(this.value)"></select>
+      <div class="chart-box"><canvas id="sectorChart"></canvas></div>
+    </div>
+  </div>`;
+
   html += `<div class="footer-note">보기 전용 페이지입니다 · 데이터 수정은 PC 리밸런서에서만 가능합니다</div>`;
 
   document.getElementById('page-summary').innerHTML = html;
   renderProfitChips();
   renderCompareBox();
+  renderSectorAcctSel();
 }
 
 function renderAccountsPage(){
@@ -621,6 +630,7 @@ function renderAccountsPage(){
           <div class="acct-right">
             <div class="acct-total">${won(r.total)}원</div>
             <div class="acct-profit ${r.profit>=0?'up':'down'}">${r.profit>=0?'+':''}${won(r.profit)}원 ${r.profitRate!=null?'('+pct(r.profitRate)+')':''}</div>
+            <div class="acct-profit" style="color:var(--ink)">시드 ${won(acc.seed||0)}원</div>
           </div>
           <div class="acct-chev">▼</div>
         </div>
@@ -789,15 +799,6 @@ function renderHistoryChart(){
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
-      onClick: (evt, els, chart) => {
-        const points = chart.getElementsAtEventForMode(evt, 'index', {intersect:false}, true);
-        if (!points.length) return;
-        const date = chart.data.labels[points[0].index];
-        if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [date];
-        else comparePoints.push(date);
-        renderCompareBox();
-        chart.draw();
-      },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: c => c.dataset.label + ': ' + won(c.parsed.y) + '원' } }
@@ -808,6 +809,26 @@ function renderHistoryChart(){
       }
     }
   });
+
+  // 손가락(또는 마우스)이 움직이는 동안 계속 가장 가까운 지점을 추적해두고,
+  // 손을 떼는 순간(pointerup) 그 마지막 위치를 비교 지점으로 선택한다.
+  // (드래그해서 값을 훑어보다가 원하는 곳에서 손을 떼는 동작과 자연스럽게 맞물림)
+  const chart = charts.historyChart;
+  let lastHoverIndex = null;
+  const trackHover = (evt) => {
+    const points = chart.getElementsAtEventForMode(evt, 'index', {intersect:false}, true);
+    if (points.length) lastHoverIndex = points[0].index;
+  };
+  cv.onpointerdown = trackHover;
+  cv.onpointermove = trackHover;
+  cv.onpointerup = () => {
+    if (lastHoverIndex == null) return;
+    const date = chart.data.labels[lastHoverIndex];
+    if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [date];
+    else comparePoints.push(date);
+    renderCompareBox();
+    chart.draw();
+  };
 }
 
 function renderRatioChart(){
@@ -842,6 +863,54 @@ function renderRatioChart(){
         x: { ticks: { color: '#8b98a5', font: { size: 10 } }, grid: { display: false } },
         y: { position: 'left', min: 0, max: 100, ticks: { color: '#5c6773', font: { size: 9 }, callback: v => v+'%' }, grid: { color: '#20272f' } },
         y1: { position: 'right', ticks: { color: '#5c6773', font: { size: 9 }, callback: v => v+'%' }, grid: { drawOnChartArea: false } },
+      }
+    }
+  });
+}
+
+// ==== 계좌별 섹터 비중 ====
+let sectorChartAcct = null;   // 선택된 계좌명. null이면 첫 계좌로 기본 선택
+function onSectorAcctSel(v){ sectorChartAcct = v; renderSectorChart(); }
+function renderSectorAcctSel(){
+  const sel = document.getElementById('sectorAcctSel');
+  if (!sel) return;
+  const names = (DATA.accounts || []).map(a => a.name);
+  if (!sectorChartAcct || !names.includes(sectorChartAcct)) sectorChartAcct = names[0] || null;
+  sel.innerHTML = names.map(n => `<option value="${n}" ${n===sectorChartAcct?'selected':''}>${n}</option>`).join('');
+}
+
+function computeSectorBreakdown(acc, fx){
+  const byName = {};
+  (acc.holdings || []).forEach(h => {
+    const val = (h.qty || 0) * (h.price || 0) * (h.market === 'US' ? fx : 1);
+    const key = h.sector || '미지정';
+    byName[key] = (byName[key] || 0) + val;
+  });
+  const entries = Object.entries(byName).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
+  return { labels: entries.map(e=>e[0]), values: entries.map(e=>e[1]) };
+}
+
+function renderSectorChart(){
+  const cv = document.getElementById('sectorChart');
+  if (!cv || !window.Chart) return;
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const acc = (DATA.accounts || []).find(a => a.name === sectorChartAcct);
+  if (!acc) return;
+  const { labels, values } = computeSectorBreakdown(acc, fx);
+
+  if (charts.sectorChart) charts.sectorChart.destroy();
+  charts.sectorChart = new Chart(cv, {
+    type: 'doughnut',
+    data: { labels, datasets: [{ data: values, backgroundColor: CHART_COLORS, borderColor: '#111722', borderWidth: 2 }] },
+    options: {
+      responsive: true, maintainAspectRatio: false,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#9aa6b8', boxWidth: 8, font: { size: 10 }, padding: 8 } },
+        tooltip: { callbacks: { label: c => {
+          const total = values.reduce((a,b)=>a+b, 0);
+          const p = total ? (c.parsed/total*100).toFixed(1) : '0';
+          return c.label + ': ' + won(c.parsed) + '원 (' + p + '%)';
+        } } }
       }
     }
   });
