@@ -417,6 +417,7 @@ function render(){
   const sig = DATA.trendSignals;
   const settings = DATA.settings || {};
   const market = DATA.market || {};
+  ensurePickedAccts();
 
   let html = '';
   html += `<div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>`;
@@ -511,7 +512,14 @@ function render(){
 
 let pickedAccts = null;  // {계좌명: true/false}. null이면 최초 렌더 때 전부 true로 채움
 
+function ensurePickedAccts(){
+  if (pickedAccts) return;
+  pickedAccts = {};
+  (DATA.accounts || []).forEach(a => { pickedAccts[a.name] = true; });
+}
+
 function togglePickAcct(name){
+  ensurePickedAccts();
   pickedAccts[name] = !pickedAccts[name];
   renderHistoryChart();
   renderProfitChips();
@@ -520,6 +528,7 @@ function togglePickAcct(name){
 const CHART_COLORS = ['#4c8dff','#e8834a','#3fb950','#c9a227','#a371f7','#f778ba'];
 
 function renderProfitChips(){
+  ensurePickedAccts();
   const box = document.getElementById('profitChips');
   if (!box) return;
   const names = (DATA.accounts || []).map(a => a.name);
@@ -534,13 +543,9 @@ function renderProfitChips(){
 function renderHistoryChart(){
   const cv = document.getElementById('historyChart');
   if (!cv || !window.Chart) return;
+  ensurePickedAccts();
   const history = DATA.history || [];
   const labels = history.map(r => r.date);
-
-  if (!pickedAccts) {
-    pickedAccts = {};
-    (DATA.accounts || []).forEach(a => { pickedAccts[a.name] = true; });
-  }
 
   const datasets = (DATA.accounts || [])
     .map((acc, i) => ({ acc, i }))
