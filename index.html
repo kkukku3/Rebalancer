@@ -178,7 +178,9 @@
 
 <script>
 const CLIENT_ID = '155085390291-minre2sngn71m9rsjdnssrmlc0u2178q.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive.readonly';
+// drive.readonly 만으로는 로그인 계정 이메일 조회(userinfo)가 거부되어
+// "계정 기억하기"가 동작하지 않았음. 이메일 확인 권한을 추가로 요청.
+const SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
 const FOLDER_NAME = 'Rebalancer';
 const FILE_NAME = 'portfolio.json';
 
