@@ -74,6 +74,7 @@
   .fold-body{margin-top:10px}
   .fold-body.hidden{display:none}
   .chart-box{position:relative;height:190px}
+  #historyChart{touch-action:pan-y}   /* 좌우 드래그는 그래프가 처리, 위아래 스크롤은 그대로 허용 */
 
   .market-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
   .mkt-cell{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
@@ -813,15 +814,18 @@ function renderHistoryChart(){
   // 손가락(또는 마우스)이 움직이는 동안 계속 가장 가까운 지점을 추적해두고,
   // 손을 떼는 순간(pointerup) 그 마지막 위치를 비교 지점으로 선택한다.
   // (드래그해서 값을 훑어보다가 원하는 곳에서 손을 떼는 동작과 자연스럽게 맞물림)
+  // touch-action:pan-y 와 함께, 좌우 드래그를 브라우저가 스크롤로 가로채지
+  // 않도록 preventDefault 도 걸어준다. 혹시 그래도 취소(pointercancel)되면
+  // 그 시점까지 추적된 위치로라도 선택되게 한다.
+  // (cv.onX = ... 형태로 덮어쓰기 방식을 써서, 이 함수가 같은 캔버스에 대해
+  //  여러 번 다시 호출돼도 리스너가 중복으로 쌓이지 않게 한다)
   const chart = charts.historyChart;
   let lastHoverIndex = null;
   const trackHover = (evt) => {
     const points = chart.getElementsAtEventForMode(evt, 'index', {intersect:false}, true);
     if (points.length) lastHoverIndex = points[0].index;
   };
-  cv.onpointerdown = trackHover;
-  cv.onpointermove = trackHover;
-  cv.onpointerup = () => {
+  const selectFromHover = () => {
     if (lastHoverIndex == null) return;
     const date = chart.data.labels[lastHoverIndex];
     if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [date];
@@ -829,6 +833,10 @@ function renderHistoryChart(){
     renderCompareBox();
     chart.draw();
   };
+  cv.onpointerdown = (evt) => { trackHover(evt); evt.preventDefault(); };
+  cv.onpointermove = (evt) => { if (evt.pressure > 0 || evt.buttons > 0) { trackHover(evt); evt.preventDefault(); } };
+  cv.onpointerup = selectFromHover;
+  cv.onpointercancel = selectFromHover;
 }
 
 function renderRatioChart(){
