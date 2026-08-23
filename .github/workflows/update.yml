@@ -1,0 +1,26 @@
+name: 리밸런서 자동 시세 업데이트
+
+on:
+  schedule:
+    # 깃허브가 허용하는 최소 간격인 5분마다 실행 (UTC 기준)
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}   # 필요하면 Actions 탭에서 수동으로도 실행 가능
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    steps:
+      - name: 저장소 코드 가져오기
+        uses: actions/checkout@v4
+
+      - name: 파이썬 설치
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: 시세 업데이트 실행
+        env:
+          GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
+          GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
+          GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+        run: python cloud_update.py
