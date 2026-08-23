@@ -26,7 +26,7 @@
   .wrap{max-width:520px;margin:0 auto;padding:0 16px}
 
   header{position:sticky;top:0;z-index:10;background:linear-gradient(180deg,var(--bg) 80%,transparent);
-    padding:18px 16px 10px;display:flex;align-items:center;justify-content:space-between}
+    padding:18px 16px 6px;display:flex;align-items:center;justify-content:space-between}
   header h1{font-size:17px;margin:0;font-weight:700;letter-spacing:-.01em}
   header .sub{font-size:11px;color:var(--dim);margin-top:2px}
   .icon-btn{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
@@ -36,7 +36,12 @@
   .icon-btn.spin svg{animation:spin .8s linear infinite}
   @keyframes spin{to{transform:rotate(360deg)}}
 
-  /* ---- 로그인 화면 ---- */
+  .tabbar{position:sticky;top:62px;z-index:9;background:var(--bg);
+    display:flex;gap:6px;padding:8px 16px 10px;border-bottom:1px solid var(--line)}
+  .tab-btn{flex:1;text-align:center;padding:9px 0;border-radius:10px;font-size:13px;
+    font-weight:600;color:var(--dim);background:transparent;cursor:pointer}
+  .tab-btn.active{background:var(--panel2);color:var(--ink);border:1px solid var(--line)}
+
   #loginScreen{min-height:88vh;display:flex;flex-direction:column;align-items:center;
     justify-content:center;text-align:center;padding:24px}
   .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#7c5cff);
@@ -54,25 +59,46 @@
   .auto-checking .spinner{width:22px;height:22px;border-radius:50%;
     border:2.5px solid var(--line);border-top-color:var(--accent);animation:spin .8s linear infinite}
 
-  /* ---- 상태 메시지 ---- */
   .state-box{margin:60px 16px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
   .state-box .big{font-size:28px;margin-bottom:10px}
   .err-box{background:rgba(229,72,77,.08);border:1px solid rgba(229,72,77,.3);
     border-radius:12px;padding:16px;margin:16px;font-size:12px;color:#ff9a9d;line-height:1.6}
 
-  /* ---- 추세 신호 ---- */
-  .trend-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:14px 0 18px}
   .chart-card{background:var(--panel);border:1px solid var(--line);border-radius:14px;
     padding:14px;margin-bottom:14px}
-  .chart-title{font-size:12.5px;color:var(--muted);font-weight:600;margin-bottom:10px}
+  .chart-title-row{display:flex;align-items:center;justify-content:space-between;margin-bottom:2px}
+  .chart-title{font-size:12.5px;color:var(--muted);font-weight:600}
+  .fold-btn{color:var(--dim);font-size:11px;padding:4px 6px;cursor:pointer;
+    transition:transform .15s;flex-shrink:0}
+  .fold-btn.closed{transform:rotate(-90deg)}
+  .fold-body{margin-top:10px}
+  .fold-body.hidden{display:none}
   .chart-box{position:relative;height:190px}
+
+  .market-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .mkt-cell{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .mkt-k{font-size:10.5px;color:var(--dim)}
+  .mkt-v{font-size:14px;font-weight:700;margin-top:2px;font-variant-numeric:tabular-nums}
+  .mkt-dd{font-size:11px;margin-top:2px;font-weight:600}
+
   .chip-row{display:flex;gap:6px;overflow-x:auto;margin-bottom:10px;padding-bottom:2px;
     -webkit-overflow-scrolling:touch}
   .chip-row::-webkit-scrollbar{display:none}
   .chip{flex-shrink:0;font-size:11.5px;color:var(--muted);background:var(--panel2);
     border:1px solid var(--line);border-radius:999px;padding:5px 12px;white-space:nowrap}
   .chip.active{background:rgba(76,141,255,.16);border-color:var(--accent);color:var(--accent);font-weight:600}
-  .trend-cell{background:var(--panel);border:1px solid var(--line);border-radius:12px;
+
+  .cmp-hint{font-size:10.5px;color:var(--dim);margin:-4px 0 8px}
+  .cmp-box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:10px 12px;margin-top:8px;font-size:12px}
+  .cmp-title{font-size:10.5px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:6px}
+  .cmp-clear{color:var(--dim);cursor:pointer}
+  .cmp-row{display:flex;justify-content:space-between;padding:2px 0}
+  .cmp-total{display:flex;justify-content:space-between;padding-top:6px;margin-top:4px;
+    border-top:1px solid var(--line);font-weight:700}
+
+  .trend-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:10px}
+  .trend-cell{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
     padding:12px 8px;text-align:center}
   .trend-cell .sym{font-size:11px;color:var(--dim);font-weight:600;letter-spacing:.03em}
   .trend-cell .lbl{font-size:13px;font-weight:700;margin-top:4px}
@@ -86,7 +112,18 @@
   .trend-cell.sell .lbl{color:#e8834a}
   .trend-cell.strong .lbl{color:var(--up)}
 
-  /* ---- 계좌 카드 ---- */
+  .trend-sel{width:100%;background:var(--panel2);border:1px solid var(--line);color:var(--ink);
+    font:inherit;font-size:12px;padding:7px 10px;border-radius:8px;margin-bottom:8px}
+  .detail-row{display:grid;grid-template-columns:repeat(5,1fr);gap:6px}
+  .detail-cell{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
+    padding:8px 4px;text-align:center}
+  .detail-cell .k{font-size:9.5px;color:var(--dim)}
+  .detail-cell .v{font-size:11px;font-weight:700;margin-top:3px}
+  .detail-cell .d{font-size:8.5px;color:var(--dim);margin-top:2px;line-height:1.3}
+  .detail-cell.watch .v{color:var(--gold)}
+  .detail-cell.sell .v{color:var(--up)}
+  .detail-cell.locked{opacity:.45}
+
   .acct{background:var(--panel);border:1px solid var(--line);border-radius:14px;
     margin-bottom:12px;overflow:hidden}
   .acct-head{padding:14px 16px;display:flex;align-items:center;justify-content:space-between;
@@ -117,14 +154,22 @@
   .acct.open .acct-chev{transform:rotate(180deg)}
   .up{color:var(--up)} .down{color:var(--down)}
 
-  .holdings{max-height:0;overflow:hidden;transition:max-height .2s ease}
-  .acct.open .holdings{max-height:2000px}
-  .h-row{display:flex;align-items:center;justify-content:space-between;
+  .holdings{max-height:0;overflow:hidden;transition:max-height .25s ease}
+  .acct.open .holdings{max-height:3000px}
+  .pie-wrap{padding:14px 16px 4px;border-top:1px solid var(--line)}
+  .pie-box{position:relative;height:180px}
+  .h-row{display:flex;align-items:center;gap:10px;
     padding:9px 16px;border-top:1px solid var(--line);font-size:12px}
+  .h-logo,.h-avatar{width:24px;height:24px;border-radius:6px;object-fit:contain;
+    background:#fff;flex-shrink:0}
+  .h-avatar{display:flex;align-items:center;justify-content:center;
+    background:var(--panel2);color:var(--muted);font-size:11px;font-weight:700}
   .h-name{color:var(--ink);font-weight:600}
   .h-sub{color:var(--dim);font-size:10.5px;margin-top:1px}
-  .h-right{text-align:right;font-variant-numeric:tabular-nums}
-  .h-val{color:var(--muted)}
+  .h-mid{flex:1;min-width:0}
+  .h-right{text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
+  .h-val{color:var(--muted);font-size:11px}
+  .h-rate{font-size:12px;font-weight:700;margin-top:1px}
   .h-empty{padding:14px 16px;color:var(--dim);font-size:12px;border-top:1px solid var(--line)}
 
   .grand{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
@@ -133,9 +178,10 @@
   .grand .v{font-size:18px;font-weight:800;font-variant-numeric:tabular-nums}
 
   .footer-note{text-align:center;font-size:10.5px;color:var(--dim);margin-top:24px;line-height:1.7}
-  .footer-note a{color:var(--dim)}
 
   #app{display:none}
+  .page{display:none}
+  .page.active{display:block}
 </style>
 </head>
 <body>
@@ -163,23 +209,24 @@
       <h1>리밸런서</h1>
       <div class="sub" id="updatedAt">불러오는 중…</div>
     </div>
-    <div style="display:flex;gap:8px">
-      <div class="icon-btn" id="refreshBtn" onclick="loadPortfolio()" title="새로고침">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
-      </div>
-      <div class="icon-btn" onclick="logout()" title="로그아웃">⏻</div>
+    <div class="icon-btn" id="refreshBtn" onclick="loadPortfolio()" title="새로고침">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
     </div>
   </header>
 
+  <div class="tabbar">
+    <div class="tab-btn active" id="tab-summary" onclick="switchTab('summary')">요약</div>
+    <div class="tab-btn" id="tab-accounts" onclick="switchTab('accounts')">계좌</div>
+  </div>
+
   <div class="wrap">
-    <div id="content"></div>
+    <div id="page-summary" class="page active"></div>
+    <div id="page-accounts" class="page"></div>
   </div>
 </div>
 
 <script>
 const CLIENT_ID = '155085390291-minre2sngn71m9rsjdnssrmlc0u2178q.apps.googleusercontent.com';
-// drive.readonly 만으로는 로그인 계정 이메일 조회(userinfo)가 거부되어
-// "계정 기억하기"가 동작하지 않았음. 이메일 확인 권한을 추가로 요청.
 const SCOPE = 'https://www.googleapis.com/auth/drive.readonly https://www.googleapis.com/auth/userinfo.email';
 const FOLDER_NAME = 'Rebalancer';
 const FILE_NAME = 'portfolio.json';
@@ -189,6 +236,7 @@ let accessToken = null;
 let DATA = null;
 let openAccts = {};
 let charts = {};
+let activeTab = 'summary';
 
 function initGoogle(){
   tokenClient = google.accounts.oauth2.initTokenClient({
@@ -196,29 +244,19 @@ function initGoogle(){
     scope: SCOPE,
     callback: (resp) => {
       clearTimeout(autoLoginTimeout);
-      if (resp.error) {
-        // 자동(조용한) 로그인 실패 → 버튼이 있는 로그인 화면 그대로 노출
-        setAutoChecking(false);
-        return;
-      }
+      if (resp.error) { setAutoChecking(false); return; }
       accessToken = resp.access_token;
       rememberAccountHint();
       showApp();
       loadPortfolio();
     }
   });
-  // 페이지를 열 때마다 자동으로 시도: 브라우저에 구글 로그인이 남아있고
-  // 이전에 이 페이지에 권한을 허용했다면, 버튼 없이 조용히 새 토큰을 받아온다.
-  // 이전에 로그인했던 계정을 hint로 넘겨주면, 계정이 여러 개 있어도
-  // 매번 계정 선택 화면이 뜨지 않고 그 계정으로 바로 시도한다.
   const savedHint = localStorage.getItem('g_hint_email') || undefined;
   setAutoChecking(true);
   tokenClient.requestAccessToken({ prompt: '', hint: savedHint });
-  // 혹시 콜백이 안 오는 경우를 대비한 안전장치
   autoLoginTimeout = setTimeout(() => setAutoChecking(false), 4000);
 }
 
-// 로그인한 계정의 이메일을 기억해둬서, 다음 방문 때 계정 선택 없이 바로 그 계정으로 시도
 async function rememberAccountHint(){
   try{
     const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
@@ -227,7 +265,7 @@ async function rememberAccountHint(){
     if (!r.ok) return;
     const info = await r.json();
     if (info.email) localStorage.setItem('g_hint_email', info.email);
-  } catch(e){ /* 실패해도 무시 — 계정 기억 기능만 못 쓸 뿐 로그인 자체엔 지장 없음 */ }
+  } catch(e){}
 }
 
 let autoLoginTimeout = null;
@@ -242,24 +280,25 @@ function login(){
   const savedHint = localStorage.getItem('g_hint_email') || undefined;
   tokenClient.requestAccessToken({ prompt: 'consent', hint: savedHint });
 }
-function logout(){
-  if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
-  accessToken = null; DATA = null;
-  localStorage.removeItem('g_hint_email');   // 명시적 로그아웃 시엔 기억해둔 계정도 지움
-  document.getElementById('app').style.display = 'none';
-  document.getElementById('loginScreen').style.display = 'flex';
-  setAutoChecking(false);
-}
 function showApp(){
   document.getElementById('loginScreen').style.display = 'none';
   document.getElementById('app').style.display = 'block';
+}
+
+function switchTab(tab){
+  activeTab = tab;
+  document.getElementById('tab-summary').classList.toggle('active', tab==='summary');
+  document.getElementById('tab-accounts').classList.toggle('active', tab==='accounts');
+  document.getElementById('page-summary').classList.toggle('active', tab==='summary');
+  document.getElementById('page-accounts').classList.toggle('active', tab==='accounts');
+  if (tab==='summary'){ renderHistoryChart(); renderRatioChart(); if(!isFolded('trendDetail')) renderTrendDetail(); }
+  else { renderAllPies(); }
 }
 
 async function driveFetch(url, retried){
   const r = await fetch(url, { headers: { Authorization: 'Bearer ' + accessToken } });
   if (r.status === 401) {
     if (!retried) {
-      // 토큰이 만료됐으면 조용히 한 번 더 재발급 시도 후 재요청
       const refreshed = await silentRefresh();
       if (refreshed) return driveFetch(url, true);
     }
@@ -285,11 +324,9 @@ function silentRefresh(){
 
 async function loadPortfolio(){
   const btn = document.getElementById('refreshBtn');
-  const content = document.getElementById('content');
   btn.classList.add('spin');
   document.getElementById('updatedAt').textContent = '불러오는 중…';
   try{
-    // 1) Rebalancer 폴더 찾기
     const fq = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
     const folderRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)`);
     const folder = (folderRes.files || [])[0];
@@ -297,7 +334,6 @@ async function loadPortfolio(){
       showEmpty('구글 드라이브에서 "Rebalancer" 폴더를 찾지 못했습니다.<br>PC에서 Update나 저장을 한 번 해주세요.');
       return;
     }
-    // 2) portfolio.json 찾기
     const ffq = encodeURIComponent(`name='${FILE_NAME}' and '${folder.id}' in parents and trashed=false`);
     const fileRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${ffq}&fields=files(id,name,modifiedTime)`);
     const file = (fileRes.files || [])[0];
@@ -305,7 +341,6 @@ async function loadPortfolio(){
       showEmpty('폴더는 있지만 portfolio.json을 찾지 못했습니다.<br>PC에서 저장을 한 번 해주세요.');
       return;
     }
-    // 3) 내용 다운로드
     DATA = await driveFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
     const d = new Date(file.modifiedTime);
     document.getElementById('updatedAt').textContent = '마지막 저장 · ' + d.toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
@@ -318,18 +353,29 @@ async function loadPortfolio(){
 }
 
 function showEmpty(msg){
-  document.getElementById('content').innerHTML = `<div class="state-box"><div class="big">📭</div>${msg}</div>`;
+  document.getElementById('page-summary').innerHTML = `<div class="state-box"><div class="big">📭</div>${msg}</div>`;
+  document.getElementById('page-accounts').innerHTML = '';
 }
 function showError(msg){
-  document.getElementById('content').innerHTML = `<div class="err-box">${msg}</div>`;
+  document.getElementById('page-summary').innerHTML = `<div class="err-box">${msg}</div>`;
+  document.getElementById('page-accounts').innerHTML = '';
 }
 
 const won = n => (n==null||isNaN(n)) ? '-' : Math.round(n).toLocaleString('ko-KR');
+const num = n => (n==null||isNaN(n)) ? '-' : (Math.round(n*100)/100).toLocaleString('ko-KR');
 const numUS = n => (n==null||isNaN(n)) ? '-' : Number(n).toLocaleString('ko-KR',{minimumFractionDigits:2,maximumFractionDigits:4});
 const pct = n => (n==null||isNaN(n)) ? '-' : ((n>=0?'+':'') + (n*100).toFixed(1) + '%');
 
-// PC 앱(app.py compute_account)과 동일한 계산식
-// PC 앱(app.py target_stock_ratio)과 동일한 공식
+let foldState = {};
+try { foldState = JSON.parse(localStorage.getItem('foldState')) || {}; } catch(e){}
+if (foldState.trendDetail === undefined) foldState.trendDetail = true;
+function isFolded(key){ return !!foldState[key]; }
+function toggleFold(key){
+  foldState[key] = !foldState[key];
+  localStorage.setItem('foldState', JSON.stringify(foldState));
+  render();
+}
+
 function targetStockRatio(settings, market){
   const peak = settings.peakStockRatio;
   const dd = settings.maxDrawdownAssumption;
@@ -341,7 +387,6 @@ function targetStockRatio(settings, market){
   return Math.min(1, peak - (1 - peak) * weighted / dd);
 }
 
-// PC 앱(app.py _signal_label)과 동일한 5단계 판정
 function signalLabel(gap, th){
   th = th || {};
   const sell = th.sell != null ? th.sell : 0.06;
@@ -360,11 +405,14 @@ function computeAccount(acc, fx, settings, market){
   const rows = [];
   (acc.holdings || []).forEach(h => {
     const price = h.price || 0;
+    const avg = h.avgPrice || 0;
     const val = (h.qty || 0) * price;
     const isUS = h.market === 'US';
     const valKR = isUS ? val * fx : val;
+    const rate = (avg && price != null) ? (price - avg) / avg : null;
     if (isUS) usStock += valKR; else krStock += valKR;
-    rows.push({ name: h.name || h.code, code: h.code, qty: h.qty || 0, price, isUS, valKR });
+    rows.push({ name: h.name || h.code, code: h.code, qty: h.qty || 0, price, avg, rate,
+      isUS, valKR, logo: h.logo, logos: h.logos });
   });
   const cash = (acc.cashKRW || 0) + (acc.cashUSD || 0) * fx;
   const total = krStock + usStock + cash;
@@ -374,7 +422,6 @@ function computeAccount(acc, fx, settings, market){
   const stockRatio = total ? (krStock + usStock) / total : 0;
   rows.sort((a,b) => b.valKR - a.valKR);
 
-  // 목표 비중·괴리 (계산 불가 상황이면 조용히 생략)
   let tRatio = null, gap = null, sig = null;
   let krGap = null, usGap = null, krGapRatio = null, usGapRatio = null;
   const krOnly = !!acc.krOnly;
@@ -391,7 +438,7 @@ function computeAccount(acc, fx, settings, market){
     const usRatio = total ? usStock / total : 0;
     krGapRatio = krRatio - tRatio * dom;
     usGapRatio = usRatio - tRatio * (1 - dom);
-  } catch(e){ /* 설정값이 없으면 배지·괴리 없이 표시 */ }
+  } catch(e){}
 
   return { total, profit, profitRate, rows, cash, stockRatio, krStock, usStock,
     tRatio, gap, sig, krGap, usGap, krGapRatio, usGapRatio, krOnly };
@@ -408,48 +455,135 @@ function trendCell(sym, sig){
   </div>`;
 }
 
+let trendDetailSym = 'QQQ';
+function onTrendDetailSel(v){ trendDetailSym = v; renderTrendDetail(); }
+function renderTrendDetail(){
+  const box = document.getElementById('trendDetailBody');
+  if (!box) return;
+  const trend = DATA.trendSignals;
+  const order = [['RSI','RSI'],['PSAR','PSAR'],['VWAP','VWAP'],['ATR','ATR'],['MA','이평선']];
+  const det = (trend && trend[trendDetailSym]) ? trend[trendDetailSym].details : null;
+  const cell = ([key,label]) => {
+    const s = (det && det[key]) || { state:'none', detail:'-' };
+    const sell = (s.state==='sell' || s.state==='emergency');
+    const locked = (s.state==='locked');
+    const cls = locked ? 'locked' : (sell ? 'sell' : (s.state==='watch' ? 'watch' : ''));
+    const txt = locked ? '잠금' : (sell ? '매도' : (s.state==='watch' ? '매도고려' : '-'));
+    return `<div class="detail-cell ${cls}">
+      <div class="k">${label}</div><div class="v">${txt}</div><div class="d">${s.detail||''}</div>
+    </div>`;
+  };
+  const sel = `<select class="trend-sel" onchange="onTrendDetailSel(this.value)">
+    ${['QQQ','SOXX','EWY'].map(s => `<option value="${s}" ${s===trendDetailSym?'selected':''}>${s} 세부 보기</option>`).join('')}
+  </select>`;
+  box.innerHTML = `${sel}<div class="detail-row">${order.map(cell).join('')}</div>`;
+}
+
 function toggleAcct(name){
   openAccts[name] = !openAccts[name];
   render();
 }
 
+function foldHeader(title, key){
+  const closed = isFolded(key);
+  return `<div class="chart-title-row" onclick="toggleFold('${key}')" style="cursor:pointer">
+    <div class="chart-title">${title}</div>
+    <div class="fold-btn ${closed?'closed':''}">▾</div>
+  </div>`;
+}
+
 function render(){
   if (!DATA) return;
-  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  renderSummaryPage();
+  renderAccountsPage();
+  if (activeTab === 'summary'){ renderHistoryChart(); renderRatioChart(); if(!isFolded('trendDetail')) renderTrendDetail(); }
+  else { renderAllPies(); }
+}
+
+function renderSummaryPage(){
   const sig = DATA.trendSignals;
   const settings = DATA.settings || {};
   const market = DATA.market || {};
   ensurePickedAccts();
 
+  const kd = market.kospiHigh ? (market.kospiNow - market.kospiHigh) / market.kospiHigh : null;
+  const nd = market.nasdaqHigh ? (market.nasdaqNow - market.nasdaqHigh) / market.nasdaqHigh : null;
+  let tRatio = null;
+  try{ tRatio = targetStockRatio(settings, market); } catch(e){}
+  const ddCls = v => (v==null) ? '' : (v<0 ? 'down' : 'up');
+
   let html = '';
-  html += `<div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>`;
 
-  // ---- 수익 금액 (계좌별 켜고 끄기) ----
   html += `<div class="chart-card">
-    <div class="chart-title">수익 금액</div>
-    <div class="chip-row" id="profitChips"></div>
-    <div class="chart-box"><canvas id="historyChart"></canvas></div>
+    ${foldHeader('시장 지표','market')}
+    <div class="fold-body ${isFolded('market')?'hidden':''}">
+      <div class="market-grid">
+        <div class="mkt-cell"><div class="mkt-k">KOSPI</div><div class="mkt-v">${num(market.kospiNow)}</div>
+          ${kd!=null?`<div class="mkt-dd ${ddCls(kd)}">고점比 ${pct(kd)}</div>`:''}</div>
+        <div class="mkt-cell"><div class="mkt-k">NASDAQ</div><div class="mkt-v">${num(market.nasdaqNow)}</div>
+          ${nd!=null?`<div class="mkt-dd ${ddCls(nd)}">고점比 ${pct(nd)}</div>`:''}</div>
+        <div class="mkt-cell"><div class="mkt-k">환율 USD/KRW</div><div class="mkt-v">${num(market.usdKrw)}</div></div>
+        <div class="mkt-cell"><div class="mkt-k">목표 주식비중</div><div class="mkt-v" style="color:var(--gold)">${tRatio!=null?pct(tRatio):'-'}</div></div>
+      </div>
+    </div>
   </div>`;
 
-  // ---- 주식 비중 및 수익률 ----
   html += `<div class="chart-card">
-    <div class="chart-title">주식 비중 및 수익률</div>
-    <div class="chart-box"><canvas id="ratioChart"></canvas></div>
+    <div class="chart-title" style="margin-bottom:10px">추세 신호</div>
+    <div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>
+    ${foldHeader('지표별 세부 신호','trendDetail')}
+    <div class="fold-body ${isFolded('trendDetail')?'hidden':''}" id="trendDetailBody"></div>
   </div>`;
 
+  html += `<div class="chart-card">
+    ${foldHeader('수익 금액','history')}
+    <div class="fold-body ${isFolded('history')?'hidden':''}">
+      <div class="chip-row" id="profitChips"></div>
+      <div class="cmp-hint">그래프의 두 지점을 순서대로 탭하면 그 사이 수익 변화를 볼 수 있어요</div>
+      <div class="chart-box"><canvas id="historyChart"></canvas></div>
+      <div id="compareBox"></div>
+    </div>
+  </div>`;
+
+  html += `<div class="chart-card">
+    ${foldHeader('주식 비중 및 수익률','ratio')}
+    <div class="fold-body ${isFolded('ratio')?'hidden':''}">
+      <div class="chart-box"><canvas id="ratioChart"></canvas></div>
+    </div>
+  </div>`;
+
+  html += `<div class="footer-note">보기 전용 페이지입니다 · 데이터 수정은 PC 리밸런서에서만 가능합니다</div>`;
+
+  document.getElementById('page-summary').innerHTML = html;
+  renderProfitChips();
+  renderCompareBox();
+}
+
+function renderAccountsPage(){
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const settings = DATA.settings || {};
+  const market = DATA.market || {};
+
+  let html = '';
   let grandTotal = 0, grandProfit = 0;
-  (DATA.accounts || []).forEach(acc => {
+
+  (DATA.accounts || []).forEach((acc, ai) => {
     const r = computeAccount(acc, fx, settings, market);
     grandTotal += r.total; grandProfit += r.profit;
     const open = !!openAccts[acc.name];
+
     const holdingsHtml = r.rows.length
       ? r.rows.map(row => `
         <div class="h-row">
-          <div>
+          ${logoImg(row)}
+          <div class="h-mid">
             <div class="h-name">${row.name}</div>
-            <div class="h-sub">${row.qty}${row.isUS ? '주' : '주'} · ${row.isUS ? numUS(row.price) : won(row.price)}${row.isUS?' USD':'원'}</div>
+            <div class="h-sub">${row.qty}주 · ${row.isUS ? numUS(row.price) : won(row.price)}${row.isUS?' USD':'원'}</div>
           </div>
-          <div class="h-right h-val">${won(row.valKR)}원</div>
+          <div class="h-right">
+            <div class="h-val">${won(row.valKR)}원</div>
+            <div class="h-rate ${row.rate==null?'':(row.rate>=0?'up':'down')}">${row.rate==null?'-':pct(row.rate)}</div>
+          </div>
         </div>`).join('')
       : `<div class="h-empty">보유 종목 없음</div>`;
 
@@ -473,6 +607,10 @@ function render(){
         </div>`
       : '';
 
+    const pieHtml = r.rows.length
+      ? `<div class="pie-wrap"><div class="pie-box"><canvas id="pie-${ai}"></canvas></div></div>`
+      : '';
+
     html += `<div class="acct ${open ? 'open' : ''}">
       <div class="acct-head" onclick="toggleAcct('${acc.name.replace(/'/g,"\\'")}')">
         <div>
@@ -489,7 +627,10 @@ function render(){
       </div>
       ${gapLine}
       ${gapDetail}
-      <div class="holdings">${holdingsHtml}</div>
+      <div class="holdings">
+        ${pieHtml}
+        ${holdingsHtml}
+      </div>
     </div>`;
   });
 
@@ -504,22 +645,56 @@ function render(){
     </div>
   </div>`;
 
-  html += `<div class="footer-note">보기 전용 페이지입니다 · 데이터 수정은 PC 리밸런서에서만 가능합니다</div>`;
-
-  document.getElementById('content').innerHTML = html;
-  renderProfitChips();
-  renderHistoryChart();
-  renderRatioChart();
+  document.getElementById('page-accounts').innerHTML = html;
 }
 
-let pickedAccts = null;  // {계좌명: true/false}. null이면 최초 렌더 때 전부 true로 채움
+function logoImg(row){
+  const letter = (row.name || row.code || '?').trim().charAt(0);
+  const list = (row.logos && row.logos.length) ? row.logos : (row.logo ? [row.logo] : []);
+  if (!list.length) return `<span class="h-avatar">${letter}</span>`;
+  const json = JSON.stringify(list).replace(/"/g,'&quot;');
+  return `<img class="h-logo" src="${list[0]}" data-cands="${json}" data-i="0" onerror="logoFallback(this)">`;
+}
+function logoFallback(img){
+  let list = []; try{ list = JSON.parse(img.getAttribute('data-cands')); }catch(e){}
+  let i = parseInt(img.getAttribute('data-i')||'0',10) + 1;
+  if (i < list.length){ img.setAttribute('data-i', i); img.src = list[i]; }
+  else { img.onerror = null; img.style.visibility = 'hidden'; }
+}
 
+function renderAllPies(){
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const settings = DATA.settings || {}, market = DATA.market || {};
+  (DATA.accounts || []).forEach((acc, ai) => {
+    if (!openAccts[acc.name]) return;
+    const cv = document.getElementById('pie-' + ai);
+    if (!cv || !window.Chart) return;
+    const r = computeAccount(acc, fx, settings, market);
+    const key = 'pie' + ai;
+    if (charts[key]) charts[key].destroy();
+    charts[key] = new Chart(cv, {
+      type: 'doughnut',
+      data: {
+        labels: r.rows.map(x => x.name),
+        datasets: [{ data: r.rows.map(x => x.valKR), backgroundColor: CHART_COLORS, borderColor: '#111722', borderWidth: 2 }]
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'right', labels: { color: '#9aa6b8', boxWidth: 8, font: { size: 10 }, padding: 8 } },
+          tooltip: { callbacks: { label: c => c.label + ': ' + won(c.parsed) + '원' } }
+        }
+      }
+    });
+  });
+}
+
+let pickedAccts = null;
 function ensurePickedAccts(){
   if (pickedAccts) return;
   pickedAccts = {};
   (DATA.accounts || []).forEach(a => { pickedAccts[a.name] = true; });
 }
-
 function togglePickAcct(name){
   ensurePickedAccts();
   pickedAccts[name] = !pickedAccts[name];
@@ -542,6 +717,53 @@ function renderProfitChips(){
   }).join('');
 }
 
+let comparePoints = [];
+function clearCompare(){
+  comparePoints = [];
+  renderCompareBox();
+  if (charts.historyChart) charts.historyChart.draw();
+}
+function renderCompareBox(){
+  const box = document.getElementById('compareBox');
+  if (!box) return;
+  if (comparePoints.length < 2) { box.innerHTML = ''; return; }
+  const [d1, d2] = comparePoints;
+  const [a, b] = d1 <= d2 ? [d1, d2] : [d2, d1];
+  const r1 = (DATA.history || []).find(r => r.date === a);
+  const r2 = (DATA.history || []).find(r => r.date === b);
+  if (!r1 || !r2) { box.innerHTML = ''; return; }
+  let total = 0;
+  const rows = (DATA.accounts || []).filter(acc => pickedAccts[acc.name]).map(acc => {
+    const v1 = r1.profits && r1.profits[acc.name], v2 = r2.profits && r2.profits[acc.name];
+    if (v1 == null || v2 == null) return `<div class="cmp-row"><span>${acc.name}</span><span>-</span></div>`;
+    const d = v2 - v1; total += d;
+    return `<div class="cmp-row"><span>${acc.name}</span><span class="${d>=0?'up':'down'}">${d>=0?'+':''}${won(d)}원</span></div>`;
+  }).join('');
+  box.innerHTML = `<div class="cmp-box">
+    <div class="cmp-title"><span>${a} → ${b}</span><span class="cmp-clear" onclick="clearCompare()">✕ 해제</span></div>
+    ${rows}
+    <div class="cmp-total"><span>합계</span><span class="${total>=0?'up':'down'}">${total>=0?'+':''}${won(total)}원</span></div>
+  </div>`;
+}
+
+const comparePlugin = {
+  id: 'comparePlugin',
+  afterDatasetsDraw(chart){
+    if (comparePoints.length === 0) return;
+    const { ctx, chartArea, scales } = chart;
+    const labels = chart.data.labels;
+    comparePoints.forEach(d => {
+      const idx = labels.indexOf(d);
+      if (idx < 0) return;
+      const x = scales.x.getPixelForValue(idx);
+      ctx.save();
+      ctx.setLineDash([5,4]); ctx.strokeStyle = '#8b98a5'; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
+      ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+      ctx.restore();
+    });
+  }
+};
+
 function renderHistoryChart(){
   const cv = document.getElementById('historyChart');
   if (!cv || !window.Chart) return;
@@ -563,9 +785,19 @@ function renderHistoryChart(){
   charts.historyChart = new Chart(cv, {
     type: 'line',
     data: { labels, datasets },
+    plugins: [comparePlugin],
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      onClick: (evt, els, chart) => {
+        const points = chart.getElementsAtEventForMode(evt, 'index', {intersect:false}, true);
+        if (!points.length) return;
+        const date = chart.data.labels[points[0].index];
+        if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [date];
+        else comparePoints.push(date);
+        renderCompareBox();
+        chart.draw();
+      },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: { label: c => c.dataset.label + ': ' + won(c.parsed.y) + '원' } }
