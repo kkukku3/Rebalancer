@@ -200,16 +200,32 @@ function initGoogle(){
         return;
       }
       accessToken = resp.access_token;
+      rememberAccountHint();
       showApp();
       loadPortfolio();
     }
   });
   // 페이지를 열 때마다 자동으로 시도: 브라우저에 구글 로그인이 남아있고
   // 이전에 이 페이지에 권한을 허용했다면, 버튼 없이 조용히 새 토큰을 받아온다.
+  // 이전에 로그인했던 계정을 hint로 넘겨주면, 계정이 여러 개 있어도
+  // 매번 계정 선택 화면이 뜨지 않고 그 계정으로 바로 시도한다.
+  const savedHint = localStorage.getItem('g_hint_email') || undefined;
   setAutoChecking(true);
-  tokenClient.requestAccessToken({ prompt: '' });
+  tokenClient.requestAccessToken({ prompt: '', hint: savedHint });
   // 혹시 콜백이 안 오는 경우를 대비한 안전장치
   autoLoginTimeout = setTimeout(() => setAutoChecking(false), 4000);
+}
+
+// 로그인한 계정의 이메일을 기억해둬서, 다음 방문 때 계정 선택 없이 바로 그 계정으로 시도
+async function rememberAccountHint(){
+  try{
+    const r = await fetch('https://www.googleapis.com/oauth2/v3/userinfo', {
+      headers: { Authorization: 'Bearer ' + accessToken }
+    });
+    if (!r.ok) return;
+    const info = await r.json();
+    if (info.email) localStorage.setItem('g_hint_email', info.email);
+  } catch(e){ /* 실패해도 무시 — 계정 기억 기능만 못 쓸 뿐 로그인 자체엔 지장 없음 */ }
 }
 
 let autoLoginTimeout = null;
@@ -221,11 +237,13 @@ function setAutoChecking(on){
 }
 
 function login(){
-  tokenClient.requestAccessToken({ prompt: 'consent' });
+  const savedHint = localStorage.getItem('g_hint_email') || undefined;
+  tokenClient.requestAccessToken({ prompt: 'consent', hint: savedHint });
 }
 function logout(){
   if (accessToken) google.accounts.oauth2.revoke(accessToken, () => {});
   accessToken = null; DATA = null;
+  localStorage.removeItem('g_hint_email');   // 명시적 로그아웃 시엔 기억해둔 계정도 지움
   document.getElementById('app').style.display = 'none';
   document.getElementById('loginScreen').style.display = 'flex';
   setAutoChecking(false);
@@ -258,7 +276,8 @@ function silentRefresh(){
       accessToken = resp.access_token;
       resolve(true);
     };
-    tokenClient.requestAccessToken({ prompt: '' });
+    const savedHint = localStorage.getItem('g_hint_email') || undefined;
+    tokenClient.requestAccessToken({ prompt: '', hint: savedHint });
   });
 }
 
@@ -402,16 +421,10 @@ function render(){
   let html = '';
   html += `<div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>`;
 
-  // ---- 수익 금액 (계좌 선택) ----
-  const acctNames = (DATA.accounts || []).map(a => a.name);
-  const chips = ['__all__', ...acctNames].map(key => {
-    const label = key === '__all__' ? '전체' : key;
-    const active = (selectedProfitAcct === key) ? 'active' : '';
-    return `<div class="chip ${active}" onclick="selectProfitAcct('${key.replace(/'/g,"\\'")}')">${label}</div>`;
-  }).join('');
+  // ---- 수익 금액 (계좌별 켜고 끄기) ----
   html += `<div class="chart-card">
     <div class="chart-title">수익 금액</div>
-    <div class="chip-row">${chips}</div>
+    <div class="chip-row" id="profitChips"></div>
     <div class="chart-box"><canvas id="historyChart"></canvas></div>
   </div>`;
 
@@ -491,17 +504,32 @@ function render(){
   html += `<div class="footer-note">보기 전용 페이지입니다 · 데이터 수정은 PC 리밸런서에서만 가능합니다</div>`;
 
   document.getElementById('content').innerHTML = html;
+  renderProfitChips();
   renderHistoryChart();
   renderRatioChart();
 }
 
-let selectedProfitAcct = '__all__';
-function selectProfitAcct(key){
-  selectedProfitAcct = key;
-  render();
+let pickedAccts = null;  // {계좌명: true/false}. null이면 최초 렌더 때 전부 true로 채움
+
+function togglePickAcct(name){
+  pickedAccts[name] = !pickedAccts[name];
+  renderHistoryChart();
+  renderProfitChips();
 }
 
 const CHART_COLORS = ['#4c8dff','#e8834a','#3fb950','#c9a227','#a371f7','#f778ba'];
+
+function renderProfitChips(){
+  const box = document.getElementById('profitChips');
+  if (!box) return;
+  const names = (DATA.accounts || []).map(a => a.name);
+  box.innerHTML = names.map((name, i) => {
+    const on = !!pickedAccts[name];
+    const c = CHART_COLORS[i % CHART_COLORS.length];
+    const style = on ? `background:${c};border-color:${c};color:#04101f` : '';
+    return `<div class="chip ${on?'active':''}" style="${style}" onclick="togglePickAcct('${name.replace(/'/g,"\\'")}')">${name}</div>`;
+  }).join('');
+}
 
 function renderHistoryChart(){
   const cv = document.getElementById('historyChart');
@@ -509,24 +537,25 @@ function renderHistoryChart(){
   const history = DATA.history || [];
   const labels = history.map(r => r.date);
 
-  let dataset;
-  if (selectedProfitAcct === '__all__') {
-    const data = history.map(r => {
-      const vals = Object.values(r.profits || {}).filter(v => v != null);
-      return vals.length ? vals.reduce((a,b) => a+b, 0) : null;
-    });
-    dataset = { label: '전체', data, borderColor: CHART_COLORS[0], backgroundColor: CHART_COLORS[0] };
-  } else {
-    const idx = (DATA.accounts || []).findIndex(a => a.name === selectedProfitAcct);
-    const color = CHART_COLORS[Math.max(0, idx) % CHART_COLORS.length];
-    const data = history.map(r => (r.profits && r.profits[selectedProfitAcct] != null) ? r.profits[selectedProfitAcct] : null);
-    dataset = { label: selectedProfitAcct, data, borderColor: color, backgroundColor: color };
+  if (!pickedAccts) {
+    pickedAccts = {};
+    (DATA.accounts || []).forEach(a => { pickedAccts[a.name] = true; });
   }
+
+  const datasets = (DATA.accounts || [])
+    .map((acc, i) => ({ acc, i }))
+    .filter(({acc}) => pickedAccts[acc.name])
+    .map(({acc, i}) => {
+      const color = CHART_COLORS[i % CHART_COLORS.length];
+      const data = history.map(r => (r.profits && r.profits[acc.name] != null) ? r.profits[acc.name] : null);
+      return { label: acc.name, data, borderColor: color, backgroundColor: color,
+        tension: .25, pointRadius: 2, spanGaps: true };
+    });
 
   if (charts.historyChart) charts.historyChart.destroy();
   charts.historyChart = new Chart(cv, {
     type: 'line',
-    data: { labels, datasets: [{ ...dataset, tension: .25, pointRadius: 2, spanGaps: true }] },
+    data: { labels, datasets },
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
