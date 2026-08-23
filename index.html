@@ -78,6 +78,23 @@
     cursor:pointer}
   .acct-name{font-size:14px;font-weight:700}
   .acct-sub{font-size:11px;color:var(--dim);margin-top:2px}
+
+  .sig-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;
+    border-radius:999px;vertical-align:middle;margin-left:2px}
+  .sig-sell{background:rgba(229,72,77,.18);color:#ff9a9d}
+  .sig-sellwatch{background:rgba(232,131,74,.18);color:#f0b483}
+  .sig-hold{background:rgba(154,166,184,.15);color:var(--muted)}
+  .sig-buywatch{background:rgba(91,191,106,.18);color:#8fe0a0}
+  .sig-buy{background:rgba(63,185,80,.2);color:#7ee2a0}
+
+  .gap-row{display:flex;justify-content:space-between;padding:0 16px 10px;
+    font-size:11.5px;color:var(--muted)}
+  .gap-detail{display:grid;grid-template-columns:1fr 1fr;gap:1px;
+    background:var(--line);border-top:1px solid var(--line)}
+  .gap-cell{background:var(--panel);padding:9px 16px}
+  .gap-k{font-size:10px;color:var(--dim)}
+  .gap-v{font-size:12px;font-weight:600;margin-top:2px;font-variant-numeric:tabular-nums}
+  .gap-pct{font-size:10px;font-weight:400;color:var(--dim);margin-left:4px}
   .acct-right{text-align:right}
   .acct-total{font-size:14px;font-weight:700;font-variant-numeric:tabular-nums}
   .acct-profit{font-size:11px;margin-top:2px;font-variant-numeric:tabular-nums}
@@ -238,7 +255,33 @@ const numUS = n => (n==null||isNaN(n)) ? '-' : Number(n).toLocaleString('ko-KR',
 const pct = n => (n==null||isNaN(n)) ? '-' : ((n>=0?'+':'') + (n*100).toFixed(1) + '%');
 
 // PC 앱(app.py compute_account)과 동일한 계산식
-function computeAccount(acc, fx){
+// PC 앱(app.py target_stock_ratio)과 동일한 공식
+function targetStockRatio(settings, market){
+  const peak = settings.peakStockRatio;
+  const dd = settings.maxDrawdownAssumption;
+  const kd = market.kospiHigh ? (market.kospiNow - market.kospiHigh) / market.kospiHigh : 0;
+  const nd = market.nasdaqHigh ? (market.nasdaqNow - market.nasdaqHigh) / market.nasdaqHigh : 0;
+  const nw = settings.nasdaqWeight != null ? settings.nasdaqWeight : 0.85;
+  const kw = settings.kospiWeight != null ? settings.kospiWeight : 0.25;
+  const weighted = nd * nw + kd * kw;
+  return Math.min(1, peak - (1 - peak) * weighted / dd);
+}
+
+// PC 앱(app.py _signal_label)과 동일한 5단계 판정
+function signalLabel(gap, th){
+  th = th || {};
+  const sell = th.sell != null ? th.sell : 0.06;
+  const sellWatch = th.sellWatch != null ? th.sellWatch : 0.03;
+  const buyWatch = th.buyWatch != null ? th.buyWatch : -0.03;
+  const buy = th.buy != null ? th.buy : -0.06;
+  if (gap >= sell) return { text: '매도', cls: 'sig-sell' };
+  if (gap >= sellWatch) return { text: '매도 고민', cls: 'sig-sellwatch' };
+  if (gap >= buyWatch) return { text: '관망', cls: 'sig-hold' };
+  if (gap >= buy) return { text: '매수 고민', cls: 'sig-buywatch' };
+  return { text: '매수', cls: 'sig-buy' };
+}
+
+function computeAccount(acc, fx, settings, market){
   let krStock = 0, usStock = 0;
   const rows = [];
   (acc.holdings || []).forEach(h => {
@@ -254,8 +297,30 @@ function computeAccount(acc, fx){
   const seed = acc.seed || 0;
   const profit = total - seed;
   const profitRate = seed ? profit / seed : null;
+  const stockRatio = total ? (krStock + usStock) / total : 0;
   rows.sort((a,b) => b.valKR - a.valKR);
-  return { total, profit, profitRate, rows, cash };
+
+  // 목표 비중·괴리 (계산 불가 상황이면 조용히 생략)
+  let tRatio = null, gap = null, sig = null;
+  let krGap = null, usGap = null, krGapRatio = null, usGapRatio = null;
+  const krOnly = !!acc.krOnly;
+  try{
+    tRatio = targetStockRatio(settings, market);
+    gap = stockRatio - tRatio;
+    sig = signalLabel(gap, acc.thresholds);
+    const dom = krOnly ? 1.0 : (settings.domesticTargetRatio != null ? settings.domesticTargetRatio : 0.5);
+    const recKR = total * tRatio * dom;
+    const recUS = total * tRatio * (1 - dom);
+    krGap = krStock - recKR;
+    usGap = usStock - recUS;
+    const krRatio = total ? krStock / total : 0;
+    const usRatio = total ? usStock / total : 0;
+    krGapRatio = krRatio - tRatio * dom;
+    usGapRatio = usRatio - tRatio * (1 - dom);
+  } catch(e){ /* 설정값이 없으면 배지·괴리 없이 표시 */ }
+
+  return { total, profit, profitRate, rows, cash, stockRatio, krStock, usStock,
+    tRatio, gap, sig, krGap, usGap, krGapRatio, usGapRatio, krOnly };
 }
 
 function trendCell(sym, sig){
@@ -278,13 +343,15 @@ function render(){
   if (!DATA) return;
   const fx = (DATA.market && DATA.market.usdKrw) || 0;
   const sig = DATA.trendSignals;
+  const settings = DATA.settings || {};
+  const market = DATA.market || {};
 
   let html = '';
   html += `<div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>`;
 
   let grandTotal = 0, grandProfit = 0;
   (DATA.accounts || []).forEach(acc => {
-    const r = computeAccount(acc, fx);
+    const r = computeAccount(acc, fx, settings, market);
     grandTotal += r.total; grandProfit += r.profit;
     const open = !!openAccts[acc.name];
     const holdingsHtml = r.rows.length
@@ -298,10 +365,30 @@ function render(){
         </div>`).join('')
       : `<div class="h-empty">보유 종목 없음</div>`;
 
+    const sigBadge = r.sig ? `<span class="sig-badge ${r.sig.cls}">${r.sig.text}</span>` : '';
+    const gapLine = r.gap != null
+      ? `<div class="gap-row">
+          <span>주식비중 ${(r.stockRatio*100).toFixed(1)}%</span>
+          <span class="${r.gap>=0?'up':'down'}">괴리 ${r.gap>=0?'+':''}${(r.gap*100).toFixed(1)}%</span>
+        </div>`
+      : '';
+    const gapDetail = r.krGap != null
+      ? `<div class="gap-detail">
+          <div class="gap-cell">
+            <div class="gap-k">국장 괴리금</div>
+            <div class="gap-v ${r.krGap>=0?'up':'down'}">${r.krGap>=0?'+':''}${won(r.krGap)}원<span class="gap-pct">(${r.krGapRatio>=0?'+':''}${(r.krGapRatio*100).toFixed(1)}%)</span></div>
+          </div>
+          ${r.krOnly ? '' : `<div class="gap-cell">
+            <div class="gap-k">미장 괴리금</div>
+            <div class="gap-v ${r.usGap>=0?'up':'down'}">${r.usGap>=0?'+':''}${won(r.usGap)}원<span class="gap-pct">(${r.usGapRatio>=0?'+':''}${(r.usGapRatio*100).toFixed(1)}%)</span></div>
+          </div>`}
+        </div>`
+      : '';
+
     html += `<div class="acct ${open ? 'open' : ''}">
       <div class="acct-head" onclick="toggleAcct('${acc.name.replace(/'/g,"\\'")}')">
         <div>
-          <div class="acct-name">${acc.name}</div>
+          <div class="acct-name">${acc.name} ${sigBadge}</div>
           <div class="acct-sub">보유 ${r.rows.length}종목</div>
         </div>
         <div style="display:flex;align-items:center">
@@ -312,6 +399,8 @@ function render(){
           <div class="acct-chev">▼</div>
         </div>
       </div>
+      ${gapLine}
+      ${gapDetail}
       <div class="holdings">${holdingsHtml}</div>
     </div>`;
   });
