@@ -558,6 +558,7 @@ function renderSummaryPage(){
     <div class="fold-body ${isFolded('sector')?'hidden':''}">
       <select class="trend-sel" id="sectorAcctSel" onchange="onSectorAcctSel(this.value)"></select>
       <div class="chart-box"><canvas id="sectorChart"></canvas></div>
+      <div id="sectorChartEmpty" class="cmp-hint" style="text-align:center;margin-top:8px"></div>
     </div>
   </div>`;
 
@@ -887,15 +888,29 @@ function renderSectorAcctSel(){
   sel.innerHTML = names.map(n => `<option value="${n}" ${n===sectorChartAcct?'selected':''}>${n}</option>`).join('');
 }
 
-function computeSectorBreakdown(acc, fx){
-  const byName = {};
+// PC 앱(renderSectorChart)과 동일한 로직:
+// 목표 비중이 설정되고, 이 계좌에 실제로 보유한 섹터만 남긴 뒤
+// 남은 섹터의 목표를 합 100%로 재정규화하고 목표 내림차순 정렬
+function computeSectorRatios(acc, fx){
+  const bySector = {};
+  let stockTotal = 0;
   (acc.holdings || []).forEach(h => {
-    const val = (h.qty || 0) * (h.price || 0) * (h.market === 'US' ? fx : 1);
-    const key = h.sector || '미지정';
-    byName[key] = (byName[key] || 0) + val;
+    const v = h.market === 'US' ? (h.qty||0)*(h.price||0)*fx : (h.qty||0)*(h.price||0);
+    stockTotal += v;
+    const key = h.sector || '(미지정)';
+    bySector[key] = (bySector[key] || 0) + v;
   });
-  const entries = Object.entries(byName).filter(([,v]) => v > 0).sort((a,b) => b[1]-a[1]);
-  return { labels: entries.map(e=>e[0]), values: entries.map(e=>e[1]) };
+
+  const sectors = DATA.sectors || [];
+  let present = sectors.filter(s => s.target != null && (bySector[s.name] || 0) > 0);
+  const tgtSum = present.reduce((t,s) => t + (s.target||0), 0);
+  present = present.map(s => ({
+    name: s.name,
+    target: tgtSum ? (s.target||0) / tgtSum * 100 : 0,
+    cur: stockTotal ? (bySector[s.name]||0) / stockTotal * 100 : 0,
+  })).sort((a,b) => b.target - a.target);
+
+  return present;
 }
 
 function renderSectorChart(){
@@ -903,22 +918,39 @@ function renderSectorChart(){
   if (!cv || !window.Chart) return;
   const fx = (DATA.market && DATA.market.usdKrw) || 0;
   const acc = (DATA.accounts || []).find(a => a.name === sectorChartAcct);
+  if (charts.sectorChart) { charts.sectorChart.destroy(); charts.sectorChart = null; }
   if (!acc) return;
-  const { labels, values } = computeSectorBreakdown(acc, fx);
 
-  if (charts.sectorChart) charts.sectorChart.destroy();
+  const present = computeSectorRatios(acc, fx);
+  const emptyBox = document.getElementById('sectorChartEmpty');
+  if (!present.length) {
+    if (emptyBox) emptyBox.textContent = '이 계좌에 해당하는 섹터가 없습니다.';
+    return;
+  }
+  if (emptyBox) emptyBox.textContent = '';
+
+  const labels = present.map(s => {
+    const d = s.cur - s.target;
+    return `${s.name} (${d>=0?'+':''}${d.toFixed(1)}%)`;
+  });
+  const cur = present.map(s => s.cur);
+  const tgt = present.map(s => s.target);
+
   charts.sectorChart = new Chart(cv, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: CHART_COLORS, borderColor: '#111722', borderWidth: 2 }] },
+    type: 'bar',
+    data: { labels, datasets: [
+      { label: '현재 비중', data: cur, backgroundColor: '#4c8dff', barPercentage: .7, categoryPercentage: .62 },
+      { label: '목표 비중', data: tgt, backgroundColor: '#c9a227', barPercentage: .7, categoryPercentage: .62 },
+    ]},
     options: {
       responsive: true, maintainAspectRatio: false,
       plugins: {
-        legend: { position: 'right', labels: { color: '#9aa6b8', boxWidth: 8, font: { size: 10 }, padding: 8 } },
-        tooltip: { callbacks: { label: c => {
-          const total = values.reduce((a,b)=>a+b, 0);
-          const p = total ? (c.parsed/total*100).toFixed(1) : '0';
-          return c.label + ': ' + won(c.parsed) + '원 (' + p + '%)';
-        } } }
+        legend: { labels: { color: '#8b98a5', boxWidth: 10, font: { size: 10 } } },
+        tooltip: { callbacks: { label: c => c.dataset.label + ': ' + c.parsed.y.toFixed(1) + '%' } }
+      },
+      scales: {
+        x: { ticks: { color: '#8b98a5', font: { size: 9.5 } }, grid: { display: false } },
+        y: { min: 0, ticks: { color: '#5c6773', font: { size: 9 }, callback: v => v+'%' }, grid: { color: '#20272f' } },
       }
     }
   });
