@@ -2,9 +2,18 @@ name: 리밸런서 자동 시세 업데이트
 
 on:
   schedule:
-    # 깃허브가 허용하는 최소 간격인 5분마다 실행 (UTC 기준)
+    # 깃허브 자체 예약은 지연이 심해서(수 시간까지 밀림) 백업 용도로만 둠.
+    # 실제 정확한 5분 간격 실행은 외부 cron-job.org가 워크플로우를 직접
+    # 트리거해서 처리한다.
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}   # 필요하면 Actions 탭에서 수동으로도 실행 가능
+  workflow_dispatch: {}   # 외부 서비스(cron-job.org)가 이 트리거를 호출함
+
+# 새 실행이 시작되면 아직 안 끝난 이전 실행은 취소한다.
+# 간격을 짧게 잡아도(1~2분) 두 실행이 동시에 구글 드라이브에 쓰면서
+# 서로 덮어쓰는 꼬임이 생기지 않도록 하는 안전장치.
+concurrency:
+  group: rebalancer-update
+  cancel-in-progress: true
 
 jobs:
   update:
