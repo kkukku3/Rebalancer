@@ -169,8 +169,8 @@
   .h-sub{color:var(--dim);font-size:10.5px;margin-top:1px}
   .h-mid{flex:1;min-width:0}
   .h-right{text-align:right;font-variant-numeric:tabular-nums;flex-shrink:0}
-  .h-val{color:var(--muted);font-size:11px}
-  .h-rate{font-size:12px;font-weight:700;margin-top:1px}
+  .h-val{color:var(--muted);font-size:10.5px}
+  .h-rate{font-size:10.5px;font-weight:700;margin-top:1px}
   .h-empty{padding:14px 16px;color:var(--dim);font-size:12px;border-top:1px solid var(--line)}
 
   .grand{background:var(--panel2);border:1px solid var(--line);border-radius:14px;
@@ -411,8 +411,9 @@ function computeAccount(acc, fx, settings, market){
     const isUS = h.market === 'US';
     const valKR = isUS ? val * fx : val;
     const rate = (avg && price != null) ? (price - avg) / avg : null;
+    const profitKR = (avg && price != null) ? (h.qty||0) * (price - avg) * (isUS ? fx : 1) : null;
     if (isUS) usStock += valKR; else krStock += valKR;
-    rows.push({ name: h.name || h.code, code: h.code, qty: h.qty || 0, price, avg, rate,
+    rows.push({ name: h.name || h.code, code: h.code, qty: h.qty || 0, price, avg, rate, profitKR,
       isUS, valKR, logo: h.logo, logos: h.logos });
   });
   const cash = (acc.cashKRW || 0) + (acc.cashUSD || 0) * fx;
@@ -584,18 +585,25 @@ function renderAccountsPage(){
     const open = !!openAccts[acc.name];
 
     const holdingsHtml = r.rows.length
-      ? r.rows.map(row => `
+      ? r.rows.map(row => {
+          const priceStr = row.isUS
+            ? `${numUS(row.avg)}/${numUS(row.price)} USD`
+            : `${won(row.avg)}/${won(row.price)}원`;
+          const profitStr = row.profitKR==null ? '' : (row.profitKR>=0?'+':'')+won(row.profitKR)+'원 ';
+          const rateStr = row.rate==null ? '-' : pct(row.rate);
+          return `
         <div class="h-row">
           ${logoImg(row)}
           <div class="h-mid">
             <div class="h-name">${row.name}</div>
-            <div class="h-sub">${row.qty}주 · ${row.isUS ? numUS(row.price) : won(row.price)}${row.isUS?' USD':'원'}</div>
+            <div class="h-sub">${row.qty}주 · ${priceStr}</div>
           </div>
           <div class="h-right">
             <div class="h-val">${won(row.valKR)}원</div>
-            <div class="h-rate ${row.rate==null?'':(row.rate>=0?'up':'down')}">${row.rate==null?'-':pct(row.rate)}</div>
+            <div class="h-rate ${row.rate==null?'':(row.rate>=0?'up':'down')}">${profitStr}${rateStr}</div>
           </div>
-        </div>`).join('')
+        </div>`;
+        }).join('')
       : `<div class="h-empty">보유 종목 없음</div>`;
 
     const sigBadge = r.sig ? `<span class="sig-badge ${r.sig.cls}">${r.sig.text}</span>` : '';
