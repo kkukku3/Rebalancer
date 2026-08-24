@@ -422,7 +422,13 @@ function computeAccount(acc, fx, settings, market){
   const profit = total - seed;
   const profitRate = seed ? profit / seed : null;
   const stockRatio = total ? (krStock + usStock) / total : 0;
-  rows.sort((a,b) => b.valKR - a.valKR);
+  // 미장(US) 먼저, 국장(KR) 나중 — 각 그룹 안에서는 수익금 내림차순
+  rows.sort((a,b) => {
+    if (a.isUS !== b.isUS) return a.isUS ? -1 : 1;
+    const pa = a.profitKR==null ? -Infinity : a.profitKR;
+    const pb = b.profitKR==null ? -Infinity : b.profitKR;
+    return pb - pa;
+  });
 
   let tRatio = null, gap = null, sig = null;
   let krGap = null, usGap = null, krGapRatio = null, usGapRatio = null;
