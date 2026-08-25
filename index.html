@@ -152,10 +152,24 @@
   .sig-buywatch{background:rgba(91,191,106,.18);color:#8fe0a0}
   .sig-buy{background:rgba(63,185,80,.2);color:#7ee2a0}
 
-  .sig-summary-row{display:flex;align-items:center;justify-content:space-between;
-    padding:9px 2px;border-top:1px solid var(--line)}
-  .sig-summary-row:first-of-type{border-top:none}
-  .sig-summary-name{font-size:13px;font-weight:600;color:var(--ink)}
+  .acct-sig-row{display:grid;gap:8px}
+  .acct-sig-cell{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
+    aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
+    text-align:center;padding:4px;overflow:hidden}
+  .acct-sig-cell .nm{font-size:10.5px;color:var(--dim);font-weight:600;letter-spacing:.02em;
+    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .acct-sig-cell .lbl{font-size:12px;font-weight:700;margin-top:4px}
+  .acct-sig-cell .gap{font-size:9.5px;color:var(--dim);margin-top:2px}
+  .acct-sig-cell.csig-sell{border-color:rgba(229,72,77,.5)}
+  .acct-sig-cell.csig-sellwatch{border-color:rgba(232,131,74,.45)}
+  .acct-sig-cell.csig-hold{border-color:rgba(154,166,184,.35)}
+  .acct-sig-cell.csig-buywatch{border-color:rgba(91,191,106,.4)}
+  .acct-sig-cell.csig-buy{border-color:rgba(63,185,80,.5)}
+  .acct-sig-cell.csig-sell .lbl{color:var(--up)}
+  .acct-sig-cell.csig-sellwatch .lbl{color:#e8834a}
+  .acct-sig-cell.csig-hold .lbl{color:var(--muted)}
+  .acct-sig-cell.csig-buywatch .lbl{color:#7ee2a0}
+  .acct-sig-cell.csig-buy .lbl{color:var(--down)}
 
   .gap-row{display:flex;justify-content:space-between;padding:0 16px 10px;
     font-size:11.5px;color:var(--muted)}
@@ -559,18 +573,26 @@ function renderSummaryPage(){
     <div class="fold-body ${isFolded('trendDetail')?'hidden':''}" id="trendDetailBody"></div>
   </div>`;
 
-  // ---- 계좌별 신호 요약 ----
+  // ---- 계좌별 신호 요약 (QQQ/SOXX/EWY 칸과 같은 스타일, 한 줄 정사각형 그리드) ----
   const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const acctCount = (DATA.accounts || []).length || 1;
   html += `<div class="chart-card">
-    <div class="chart-title" style="margin-bottom:10px">계좌 신호 요약</div>
-    ${(DATA.accounts || []).map(acc => {
-      const r = computeAccount(acc, fx, settings, market);
-      const badge = r.sig ? `<span class="sig-badge ${r.sig.cls}">${r.sig.text}</span>` : '<span style="color:var(--dim);font-size:11px">-</span>';
-      return `<div class="sig-summary-row">
-        <span class="sig-summary-name">${acc.name}</span>
-        ${badge}
-      </div>`;
-    }).join('')}
+    ${foldHeader('계좌 신호 요약','acctSig')}
+    <div class="fold-body ${isFolded('acctSig')?'hidden':''}">
+      <div class="acct-sig-row" style="grid-template-columns:repeat(${acctCount},1fr)">
+        ${(DATA.accounts || []).map(acc => {
+          const r = computeAccount(acc, fx, settings, market);
+          const cellCls = r.sig ? 'c' + r.sig.cls : '';
+          const lbl = r.sig ? r.sig.text : '-';
+          const gapTxt = r.gap != null ? `${r.gap>=0?'+':''}${(r.gap*100).toFixed(1)}%` : '';
+          return `<div class="acct-sig-cell ${cellCls}">
+            <div class="nm">${acc.name}</div>
+            <div class="lbl">${lbl}</div>
+            ${gapTxt ? `<div class="gap">${gapTxt}</div>` : ''}
+          </div>`;
+        }).join('')}
+      </div>
+    </div>
   </div>`;
 
   html += `<div class="chart-card">
