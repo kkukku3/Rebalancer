@@ -152,14 +152,16 @@
   .sig-buywatch{background:rgba(91,191,106,.18);color:#8fe0a0}
   .sig-buy{background:rgba(63,185,80,.2);color:#7ee2a0}
 
-  .acct-sig-row{display:grid;gap:8px}
+  .acct-sig-row{display:grid;gap:7px;overflow-x:auto;padding-bottom:2px;-webkit-overflow-scrolling:touch}
+  .acct-sig-row::-webkit-scrollbar{display:none}
   .acct-sig-cell{background:var(--panel2);border:1px solid var(--line);border-radius:12px;
-    aspect-ratio:1/1;display:flex;flex-direction:column;align-items:center;justify-content:center;
-    text-align:center;padding:4px;overflow:hidden}
+    aspect-ratio:1/1;min-width:70px;display:flex;flex-direction:column;align-items:center;
+    justify-content:center;text-align:center;padding:4px;overflow:hidden}
   .acct-sig-cell .nm{font-size:10.5px;color:var(--dim);font-weight:600;letter-spacing:.02em;
-    overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
-  .acct-sig-cell .lbl{font-size:12px;font-weight:700;margin-top:4px}
-  .acct-sig-cell .gap{font-size:9.5px;color:var(--dim);margin-top:2px}
+    line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:100%}
+  .acct-sig-cell .lbl{font-size:12px;font-weight:700;margin-top:4px;line-height:1.15;
+    white-space:nowrap}
+  .acct-sig-cell .gap{font-size:9.5px;color:var(--dim);margin-top:2px;line-height:1.15;white-space:nowrap}
   .acct-sig-cell.csig-sell{border-color:rgba(229,72,77,.5)}
   .acct-sig-cell.csig-sellwatch{border-color:rgba(232,131,74,.45)}
   .acct-sig-cell.csig-hold{border-color:rgba(154,166,184,.35)}
@@ -579,7 +581,7 @@ function renderSummaryPage(){
   html += `<div class="chart-card">
     ${foldHeader('계좌 신호 요약','acctSig')}
     <div class="fold-body ${isFolded('acctSig')?'hidden':''}">
-      <div class="acct-sig-row" style="grid-template-columns:repeat(${acctCount},1fr)">
+      <div class="acct-sig-row" style="grid-template-columns:repeat(${acctCount},minmax(70px,1fr))">
         ${(DATA.accounts || []).map(acc => {
           const r = computeAccount(acc, fx, settings, market);
           const cellCls = r.sig ? 'c' + r.sig.cls : '';
