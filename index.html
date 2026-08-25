@@ -152,6 +152,11 @@
   .sig-buywatch{background:rgba(91,191,106,.18);color:#8fe0a0}
   .sig-buy{background:rgba(63,185,80,.2);color:#7ee2a0}
 
+  .sig-summary-row{display:flex;align-items:center;justify-content:space-between;
+    padding:9px 2px;border-top:1px solid var(--line)}
+  .sig-summary-row:first-of-type{border-top:none}
+  .sig-summary-name{font-size:13px;font-weight:600;color:var(--ink)}
+
   .gap-row{display:flex;justify-content:space-between;padding:0 16px 10px;
     font-size:11.5px;color:var(--muted)}
   .gap-detail{display:grid;grid-template-columns:1fr 1fr;gap:1px;
@@ -552,6 +557,20 @@ function renderSummaryPage(){
     <div class="trend-row">${['QQQ','SOXX','EWY'].map(s => trendCell(s, sig)).join('')}</div>
     ${foldHeader('지표별 세부 신호','trendDetail')}
     <div class="fold-body ${isFolded('trendDetail')?'hidden':''}" id="trendDetailBody"></div>
+  </div>`;
+
+  // ---- 계좌별 신호 요약 ----
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  html += `<div class="chart-card">
+    <div class="chart-title" style="margin-bottom:10px">계좌 신호 요약</div>
+    ${(DATA.accounts || []).map(acc => {
+      const r = computeAccount(acc, fx, settings, market);
+      const badge = r.sig ? `<span class="sig-badge ${r.sig.cls}">${r.sig.text}</span>` : '<span style="color:var(--dim);font-size:11px">-</span>';
+      return `<div class="sig-summary-row">
+        <span class="sig-summary-name">${acc.name}</span>
+        ${badge}
+      </div>`;
+    }).join('')}
   </div>`;
 
   html += `<div class="chart-card">
