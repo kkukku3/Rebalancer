@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#0a0e14">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="리밸런서">
+<meta name="apple-mobile-web-app-title" content="Rebalancer">
 <script src="https://accounts.google.com/gsi/client" async defer></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <style>
@@ -44,10 +44,8 @@
 
   #loginScreen{min-height:88vh;display:flex;flex-direction:column;align-items:center;
     justify-content:center;text-align:center;padding:24px}
-  .mark{width:56px;height:56px;border-radius:16px;background:linear-gradient(135deg,var(--accent),#7c5cff);
-    display:flex;align-items:center;justify-content:center;font-size:26px;margin-bottom:22px;
-    box-shadow:0 8px 30px -6px rgba(76,141,255,.5)}
-  #loginScreen h2{font-size:19px;margin:0 0 8px;font-weight:700}
+  .brand-text{font-size:26px;font-weight:800;letter-spacing:-.02em;color:var(--ink);
+    margin-bottom:14px}
   #loginScreen p{font-size:13px;color:var(--muted);line-height:1.6;max-width:280px;margin:0 0 26px}
   .g-btn{background:var(--ink);color:#0a0e14;border:none;border-radius:12px;
     padding:13px 26px;font-size:14px;font-weight:700;cursor:pointer;
@@ -188,8 +186,7 @@
 <body>
 
 <div id="loginScreen" class="wrap">
-  <div class="mark">📊</div>
-  <h2>리밸런서 모바일</h2>
+  <div class="brand-text">Rebalancer</div>
   <p>PC 리밸런서가 구글 드라이브에 저장한<br>최신 데이터를 읽기 전용으로 확인합니다.</p>
   <div id="autoChecking" class="auto-checking">
     <div class="spinner"></div>

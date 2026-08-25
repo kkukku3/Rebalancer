@@ -1,6 +1,6 @@
 {
-  "name": "리밸런서",
-  "short_name": "리밸런서",
+  "name": "Rebalancer",
+  "short_name": "Rebalancer",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
