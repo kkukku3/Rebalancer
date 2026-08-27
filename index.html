@@ -116,6 +116,10 @@
     color:#04101f;font-weight:600}
 
   .cmp-hint{font-size:10.5px;color:var(--dim);margin:-4px 0 8px}
+  .compare-toggle-row{margin-bottom:6px}
+  .compare-toggle{font-size:11px;color:var(--muted);background:var(--panel2);
+    border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600}
+  .compare-toggle.active{background:rgba(76,141,255,.18);border-color:var(--accent);color:var(--accent)}
   .cmp-box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
     padding:10px 12px;margin-top:8px;font-size:12px}
   .cmp-title{font-size:10.5px;color:var(--dim);display:flex;justify-content:space-between;margin-bottom:6px}
@@ -769,7 +773,10 @@ function renderSummaryPage(){
         <button onclick="resetProfitDateRange()">전체 기간</button>
       </div>
       <div class="chip-row" id="profitChips"></div>
-      <div class="cmp-hint">그래프의 두 지점을 순서대로 탭하면 그 사이 수익 변화를 볼 수 있어요</div>
+      <div class="compare-toggle-row">
+        <button class="compare-toggle" id="compareToggleBtn" onclick="toggleCompareMode()">두 지점 비교</button>
+      </div>
+      <div class="cmp-hint" id="cmpHint" style="display:none">비교할 지점을 순서대로 두 번 탭(또는 드래그 후 손 떼기)하세요. 다시 누르면 꺼집니다.</div>
       <div class="chart-box"><canvas id="historyChart"></canvas></div>
       <div id="compareBox"></div>
     </div>
@@ -997,6 +1004,25 @@ function renderProfitChips(){
 }
 
 let comparePoints = [];
+let compareModeOn = false;
+function toggleCompareMode(){
+  compareModeOn = !compareModeOn;
+  if (!compareModeOn) {
+    comparePoints = [];
+    renderCompareBox();
+    if (charts.historyChart) charts.historyChart.draw();
+  }
+  updateCompareToggleUI();
+}
+function updateCompareToggleUI(){
+  const btn = document.getElementById('compareToggleBtn');
+  if (btn) {
+    btn.classList.toggle('active', compareModeOn);
+    btn.textContent = compareModeOn ? '비교 모드 켜짐 (다시 눌러 끄기)' : '두 지점 비교';
+  }
+  const hint = document.getElementById('cmpHint');
+  if (hint) hint.style.display = compareModeOn ? 'block' : 'none';
+}
 function clearCompare(){
   comparePoints = [];
   renderCompareBox();
@@ -1106,6 +1132,7 @@ function renderHistoryChart(){
     if (points.length) lastHoverIndex = points[0].index;
   };
   const selectFromHover = () => {
+    if (!compareModeOn) return;   // 비교 모드가 꺼져 있으면 값 조회만 하고 점은 안 찍음
     if (lastHoverIndex == null) return;
     const date = chart.data.labels[lastHoverIndex];
     if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [date];
@@ -1113,10 +1140,11 @@ function renderHistoryChart(){
     renderCompareBox();
     chart.draw();
   };
-  cv.onpointerdown = (evt) => { trackHover(evt); evt.preventDefault(); };
-  cv.onpointermove = (evt) => { if (evt.pressure > 0 || evt.buttons > 0) { trackHover(evt); evt.preventDefault(); } };
+  cv.onpointerdown = (evt) => { if (compareModeOn) { trackHover(evt); evt.preventDefault(); } };
+  cv.onpointermove = (evt) => { if (compareModeOn && (evt.pressure > 0 || evt.buttons > 0)) { trackHover(evt); evt.preventDefault(); } };
   cv.onpointerup = selectFromHover;
   cv.onpointercancel = selectFromHover;
+  updateCompareToggleUI();
 }
 
 function renderRatioChart(){
