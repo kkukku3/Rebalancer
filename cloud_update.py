@@ -485,16 +485,17 @@ def compute_signals_for(hist):
     c = closes[-1]
     sig = {}
 
-    # 1) RSI(14): <50 강력, 50~55 고려
+    # 1) RSI(14): 42 미만 매도, 42~50 매도 고려(비례 배분), 50 이상 정상
     r = _rsi(closes, 14)
     if r is None:
-        sig["RSI"] = {"state": "none", "detail": "-"}
+        sig["RSI"] = {"state": "none", "detail": "-", "score": 0}
+    elif r < 42:
+        sig["RSI"] = {"state": "sell", "detail": f"RSI {r:.1f}", "score": 2.0}
     elif r < 50:
-        sig["RSI"] = {"state": "sell", "detail": f"RSI {r:.1f}"}
-    elif r <= 55:
-        sig["RSI"] = {"state": "watch", "detail": f"RSI {r:.1f}"}
+        frac = (50 - r) / (50 - 42)
+        sig["RSI"] = {"state": "watch", "detail": f"RSI {r:.1f}", "score": round(2.0 * frac, 2)}
     else:
-        sig["RSI"] = {"state": "none", "detail": f"RSI {r:.1f}"}
+        sig["RSI"] = {"state": "none", "detail": f"RSI {r:.1f}", "score": 0}
 
     # 2) PSAR: 점이 주가 위로 반전(발생 후 5일 지속). 중간 단계 없음
     sars = _psar_series(highs, lows)
@@ -581,10 +582,14 @@ def composite_from_signals(sig):
     def st(k):
         return sig.get(k, {}).get("state", "none")
 
+    rsi_score = sig.get("RSI", {}).get("score")
+    if rsi_score is None:
+        rsi_score = rsi_pts.get(st("RSI"), 0)
+
     raw = (trend_pts.get(st("PSAR"), 0)
            + trend_pts.get(st("VWAP"), 0)
            + trend_pts.get(st("MA"), 0)
-           + rsi_pts.get(st("RSI"), 0)
+           + rsi_score
            + atr_pts.get(st("ATR"), 0))
     # 만점: 추세 3(1+1+1) + RSI 2 + ATR 비상 4 = 9 (잠금 여부와 무관하게 고정)
     MAX = 9.0
@@ -598,6 +603,30 @@ def composite_from_signals(sig):
     else:
         level, label = "strong", "강력 매도"
     return {"score": score, "raw": round(raw, 1), "level": level, "label": label}
+
+
+def record_trend_history(data):
+    """오늘 날짜로 QQQ/SOXX/EWY 종합 점수를 trendHistory 에 기록(하루 1건, 덮어쓰기).
+       PC 앱의 추세 신호 팝업 그래프와 데이터 소스를 공유한다."""
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    store = data.setdefault("trendHistory", {})
+    sig = data.get("trendSignals") or {}
+    for sym in TREND_SYMBOLS:
+        comp = (sig.get(sym) or {}).get("composite")
+        if not comp:
+            continue
+        arr = store.setdefault(sym, [])
+        score = comp.get("score")
+        updated = False
+        for row in arr:
+            if row["date"] == today:
+                row["score"] = score
+                updated = True
+                break
+        if not updated:
+            arr.append({"date": today, "score": score})
+        arr.sort(key=lambda r: r["date"])
 
 
 def compute_trend_signals(data):
@@ -959,6 +988,7 @@ def main():
             warnings.append(f"{sym} 데이터 실패: {e}")
     try:
         data["trendSignals"] = compute_trend_signals(data)
+        record_trend_history(data)
     except Exception as e:
         warnings.append(f"추세 지표 계산 실패: {e}")
 
