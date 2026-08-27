@@ -7,6 +7,7 @@
 """
 import json
 import os
+import re
 import ssl
 import sys
 import time
@@ -616,8 +617,11 @@ def compute_trend_signals(data):
 
 
 def naver_price(code):
-    """국내 종목 현재가 (NXT 우선, 실패 시 일반)"""
+    """국내 종목 현재가 (NXT 우선, 실패 시 일반).
+       클라우드 환경에서만 실패하는 경우를 진단하기 위해, 실패 시
+       원인(예외 또는 빈 응답)을 콘솔에 남긴다(깃허브 Actions 로그에서 확인 가능)."""
     code = code.zfill(6)
+    last_reason = None
     for q in (f"NXT_{code}", code):
         try:
             url = ("https://polling.finance.naver.com/api/realtime"
@@ -626,8 +630,10 @@ def naver_price(code):
             m = re.search(r'"nv":\s*(\d+)', txt)
             if m:
                 return float(m.group(1))
-        except Exception:
-            continue
+            last_reason = f"응답은 받았으나 'nv' 필드를 못 찾음. 응답 앞부분: {txt[:200]!r}"
+        except Exception as e:
+            last_reason = f"요청 자체가 실패함: {e}"
+    print(f"  [경고] naver_price({code}) 실패 — {last_reason}")
     return None
 
 
