@@ -116,7 +116,7 @@
     color:#04101f;font-weight:600}
 
   .cmp-hint{font-size:10.5px;color:var(--dim);margin:-4px 0 8px}
-  .compare-toggle-row{margin-bottom:6px}
+  .compare-toggle-row{margin-bottom:6px;display:flex;align-items:center;gap:6px}
   .compare-toggle{font-size:11px;color:var(--muted);background:var(--panel2);
     border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600}
   .compare-toggle.active{background:rgba(76,141,255,.18);border-color:var(--accent);color:var(--accent)}
@@ -759,22 +759,22 @@ function renderSummaryPage(){
   html += `<div class="chart-card">
     <div class="chart-title-row" onclick="toggleFold('history')" style="cursor:pointer">
       <div class="chart-title">수익 금액</div>
-      <div style="display:flex;align-items:center;gap:6px">
-        <div class="period-btn" onclick="event.stopPropagation();toggleProfitDatePanel()">기간</div>
-        <div class="fold-btn ${isFolded('history')?'closed':''}">▾</div>
-      </div>
+      <div class="fold-btn ${isFolded('history')?'closed':''}">▾</div>
     </div>
     <div class="fold-body ${isFolded('history')?'hidden':''}">
-      <div id="profitDatePanel" class="date-panel ${profitDatePanelOpen?'':'hidden'}">
-        <input type="date" id="profitDateFrom" value="${(profitDateRange&&profitDateRange.from)||''}">
-        <span style="color:var(--dim)">~</span>
-        <input type="date" id="profitDateTo" value="${(profitDateRange&&profitDateRange.to)||''}">
-        <button onclick="applyProfitDateRange()">적용</button>
-        <button onclick="resetProfitDateRange()">전체 기간</button>
-      </div>
       <div class="chip-row" id="profitChips"></div>
       <div class="compare-toggle-row">
-        <button class="compare-toggle" id="compareToggleBtn" onclick="toggleCompareMode()">두 지점 비교</button>
+        <button class="compare-toggle" id="compareToggleBtn" onclick="toggleCompareMode()">비교</button>
+        <div class="period-btn" onclick="toggleProfitDatePanel()">기간</div>
+      </div>
+      <div id="profitDatePanel" class="date-panel ${profitDatePanelOpen?'':'hidden'}">
+        <input type="text" id="profitDateFrom" maxlength="6" inputmode="numeric" placeholder="YYMMDD"
+          value="${profitDateRange?isoToYYMMDD(profitDateRange.from):''}">
+        <span style="color:var(--dim)">~</span>
+        <input type="text" id="profitDateTo" maxlength="6" inputmode="numeric" placeholder="YYMMDD"
+          value="${profitDateRange?isoToYYMMDD(profitDateRange.to):''}">
+        <button onclick="resetProfitDateRange()">전체</button>
+        <button onclick="applyProfitDateRange()">적용</button>
       </div>
       <div class="cmp-hint" id="cmpHint" style="display:none">비교할 지점을 순서대로 두 번 탭(또는 드래그 후 손 떼기)하세요. 다시 누르면 꺼집니다.</div>
       <div class="chart-box"><canvas id="historyChart"></canvas></div>
@@ -955,8 +955,8 @@ function toggleProfitDatePanel(){
   if (panel) panel.classList.toggle('hidden', !profitDatePanelOpen);
 }
 function applyProfitDateRange(){
-  const from = document.getElementById('profitDateFrom').value || null;
-  const to = document.getElementById('profitDateTo').value || null;
+  const from = yymmddToISO(document.getElementById('profitDateFrom').value);
+  const to = yymmddToISO(document.getElementById('profitDateTo').value);
   profitDateRange = (from || to) ? { from, to } : null;
   try { localStorage.setItem('profitDateRange', JSON.stringify(profitDateRange)); } catch(e){}
   renderHistoryChart();
