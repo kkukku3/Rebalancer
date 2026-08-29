@@ -947,6 +947,51 @@ def _refresh_access_token(client_id, client_secret, refresh_token):
     return tok["access_token"]
 
 
+def target_stock_ratio(s, m):
+    peak = s["peakStockRatio"]
+    dd = s["maxDrawdownAssumption"]
+    kd = (m["kospiNow"] - m["kospiHigh"]) / m["kospiHigh"] if m.get("kospiHigh") else 0
+    nd = (m["nasdaqNow"] - m["nasdaqHigh"]) / m["nasdaqHigh"] if m.get("nasdaqHigh") else 0
+    nw = s.get("nasdaqWeight", 0.85)
+    kw = s.get("kospiWeight", 0.25)
+    weighted = nd * nw + kd * kw
+    return min(1.0, peak - (1 - peak) * weighted / dd)
+
+
+def compute_account(data, acc):
+    m = data["market"]
+    fx = m.get("usdKrw") or 0
+    kr_stock = us_stock = 0.0
+    for h in acc.get("holdings", []):
+        price = h.get("price") or 0
+        val = h.get("qty", 0) * price
+        if h.get("market") == "US":
+            us_stock += val * fx
+        else:
+            kr_stock += val
+    cash = acc.get("cashKRW", 0) + acc.get("cashUSD", 0) * fx
+    total = kr_stock + us_stock + cash
+    return {"total": total, "totalProfit": total - acc.get("seed", 0)}
+
+
+def record_history(data):
+    """오늘 날짜로 각 계좌 총수익을 history 에 기록(덮어쓰기).
+       PC 앱의 record_history와 동일 — 자동화가 도는 동안에도
+       수익 금액 그래프에 하루 단위로 점이 계속 쌓이게 한다."""
+    from datetime import date as _date
+    today = _date.today().isoformat()
+    profits = {}
+    for acc in data["accounts"]:
+        r = compute_account(data, acc)
+        profits[acc["name"]] = round(r["totalProfit"])
+    for row in data["history"]:
+        if row["date"] == today:
+            row["profits"] = profits
+            return
+    data["history"].append({"date": today, "profits": profits})
+    data["history"].sort(key=lambda x: x["date"])
+
+
 def main():
     client_id = os.environ.get("GOOGLE_CLIENT_ID")
     client_secret = os.environ.get("GOOGLE_CLIENT_SECRET")
@@ -991,6 +1036,11 @@ def main():
         record_trend_history(data)
     except Exception as e:
         warnings.append(f"추세 지표 계산 실패: {e}")
+
+    try:
+        record_history(data)
+    except Exception as e:
+        warnings.append(f"수익 금액 기록 실패: {e}")
 
     print("구글 드라이브에 업로드 중...")
     content = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
