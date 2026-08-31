@@ -118,7 +118,8 @@
   .compare-toggle-row{margin-bottom:6px;display:flex;align-items:center;gap:6px}
   .compare-toggle{font-size:11px;color:var(--muted);background:var(--panel2);
     border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;
-    min-width:44px;text-align:center}
+    text-align:center}
+  .compare-toggle.equal-w{flex:0 0 auto;width:50px}
   .compare-toggle.active{background:rgba(76,141,255,.18);border-color:var(--accent);color:var(--accent)}
   .cmp-box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
     padding:10px 12px;margin-top:8px;font-size:12px}
@@ -846,11 +847,11 @@ function renderSummaryPage(){
     </div>
     <div class="fold-body ${isFolded('history')?'hidden':''}">
       <div class="chip-row" id="profitChips"></div>
-      <div class="compare-toggle-row" id="profitPresetRow" style="flex-wrap:wrap">
-        <button class="compare-toggle" id="compareToggleBtn" onclick="toggleCompareMode()">비교</button>
-        <button class="compare-toggle" onclick="toggleProfitDatePanel()">기간</button>
-        <button class="compare-toggle" id="profitPresetCycleBtn" onclick="cycleProfitPreset()">${(profitPreset&&!profitDateRange)?({'3m':'3M','6m':'6M','1y':'1Y'}[profitPreset]):'3M'}</button>
-        <button class="compare-toggle" onclick="resetProfitDateRange()">전체</button>
+      <div class="compare-toggle-row" id="profitPresetRow" style="flex-wrap:nowrap">
+        <button class="compare-toggle equal-w" id="compareToggleBtn" onclick="toggleCompareMode()">비교</button>
+        <button class="compare-toggle equal-w" onclick="toggleProfitDatePanel()">기간</button>
+        <button class="compare-toggle equal-w" id="profitPresetCycleBtn" onclick="cycleProfitPreset()">${(profitPreset&&!profitDateRange)?({'3m':'3M','6m':'6M','1y':'1Y'}[profitPreset]):'3M'}</button>
+        <button class="compare-toggle equal-w" onclick="resetProfitDateRange()">전체</button>
       </div>
       <div id="profitDatePanel" class="date-panel ${profitDatePanelOpen?'':'hidden'}">
         <input type="text" id="profitDateFrom" maxlength="6" inputmode="numeric" placeholder="YYMMDD"
@@ -1177,11 +1178,13 @@ function renderProfitChips(){
 }
 
 let comparePoints = [];
+let compareMarkers = [];   // [{date, datasetIndex}] — 차트에 실제로 크로스헤어를 그릴, "내가 클릭한 그 점"만 저장
 let compareModeOn = false;
 function toggleCompareMode(){
   compareModeOn = !compareModeOn;
   if (!compareModeOn) {
     comparePoints = [];
+    compareMarkers = [];
     renderCompareBox();
     if (charts.historyChart) charts.historyChart.draw();
   }
@@ -1198,6 +1201,7 @@ function updateCompareToggleUI(){
 }
 function clearCompare(){
   comparePoints = [];
+  compareMarkers = [];
   renderCompareBox();
   if (charts.historyChart) charts.historyChart.draw();
 }
@@ -1227,34 +1231,29 @@ function renderCompareBox(){
 const comparePlugin = {
   id: 'comparePlugin',
   afterDatasetsDraw(chart){
-    if (comparePoints.length === 0) return;
+    if (compareMarkers.length === 0) return;
     const { ctx, chartArea, scales } = chart;
-    comparePoints.forEach(d => {
-      const x = scales.x.getPixelForValue(new Date(d).getTime());
-      if (x == null || isNaN(x)) return;
-      // 세로 점선(x축 기준 — 선택한 날짜)
+    compareMarkers.forEach(m => {
+      const ds = chart.data.datasets[m.datasetIndex];
+      if (!ds) return;
+      const pt = (ds.data || []).find(p => p.x === m.date);
+      if (!pt || pt.y == null) return;
+      const x = scales.x.getPixelForValue(new Date(m.date).getTime());
+      const y = scales.y.getPixelForValue(pt.y);
+      if (x == null || isNaN(x) || y == null || isNaN(y)) return;
+      const color = ds.borderColor || '#8b98a5';
       ctx.save();
-      ctx.setLineDash([5,4]); ctx.strokeStyle = '#8b98a5'; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
+      ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
+      // 세로 점선(x축 — 클릭한 날짜)
       ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+      // 가로 점선(y축 — 클릭한 그 계좌의 값)
+      ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(x, y); ctx.stroke();
       ctx.restore();
-
-      // 계좌(데이터셋)별로 그 날짜의 값 위치에 가로 점선 + 점 표시(y축 기준)
-      chart.data.datasets.forEach(ds => {
-        const pt = (ds.data || []).find(p => p.x === d);
-        if (!pt || pt.y == null) return;
-        const y = scales.y.getPixelForValue(pt.y);
-        if (y == null || isNaN(y)) return;
-        const color = ds.borderColor || '#8b98a5';
-        ctx.save();
-        ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.globalAlpha = .6;
-        ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(x, y); ctx.stroke();
-        ctx.restore();
-        ctx.save();
-        ctx.fillStyle = color;
-        ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
-        ctx.strokeStyle = '#0e1116'; ctx.lineWidth = 1; ctx.stroke();
-        ctx.restore();
-      });
+      ctx.save();
+      ctx.fillStyle = color;
+      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
+      ctx.strokeStyle = '#0e1116'; ctx.lineWidth = 1; ctx.stroke();
+      ctx.restore();
     });
   }
 };
@@ -1337,20 +1336,25 @@ function renderHistoryChart(){
   // (cv.onX = ... 형태로 덮어쓰기 방식을 써서, 이 함수가 같은 캔버스에 대해
   //  여러 번 다시 호출돼도 리스너가 중복으로 쌓이지 않게 한다)
   const chart = charts.historyChart;
-  let lastHoverDate = null;
+  let lastHoverPoint = null;   // {date, datasetIndex} — 실제로 가장 가까운 "그 점" 하나만 기억
   const trackHover = (evt) => {
-    const points = chart.getElementsAtEventForMode(evt, 'index', {intersect:false}, true);
+    const points = chart.getElementsAtEventForMode(evt, 'nearest', {intersect:false}, true);
     if (points.length) {
-      const pt = chart.data.datasets[points[0].datasetIndex].data[points[0].index];
-      if (pt) lastHoverDate = pt.x;
+      const p = points[0];
+      const pt = chart.data.datasets[p.datasetIndex].data[p.index];
+      if (pt) lastHoverPoint = { date: pt.x, datasetIndex: p.datasetIndex };
     }
   };
   const selectFromHover = () => {
     if (!compareModeOn) return;   // 비교 모드가 꺼져 있으면 값 조회만 하고 점은 안 찍음
-    if (lastHoverDate == null) return;
-    const date = lastHoverDate;
-    if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [date];
-    else comparePoints.push(date);
+    if (lastHoverPoint == null) return;
+    if (comparePoints.length === 0 || comparePoints.length === 2) {
+      comparePoints = [lastHoverPoint.date];
+      compareMarkers = [lastHoverPoint];
+    } else {
+      comparePoints.push(lastHoverPoint.date);
+      compareMarkers.push(lastHoverPoint);
+    }
     renderCompareBox();
     chart.draw();
   };
