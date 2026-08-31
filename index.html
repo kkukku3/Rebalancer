@@ -160,9 +160,19 @@
     cursor:pointer}
   .acct-name{font-size:14px;font-weight:700}
   .acct-sub{font-size:11px;color:var(--dim);margin-top:2px}
+  .thresh-btn{display:inline-block;font-size:10px;color:var(--dim);background:var(--panel2);
+    border:1px solid var(--line);border-radius:6px;padding:2px 7px;margin-top:5px;cursor:pointer}
+  .thresh-row{display:flex;justify-content:space-between;align-items:center;
+    padding:8px 10px;margin-bottom:6px;border-radius:8px;font-size:12px;
+    background:var(--panel2);border-left:3px solid var(--line)}
+  .thresh-row.csig-sell{border-left-color:var(--up)}
+  .thresh-row.csig-sellwatch{border-left-color:#e8834a}
+  .thresh-row.csig-hold{border-left-color:var(--muted)}
+  .thresh-row.csig-buywatch{border-left-color:#7ee2a0}
+  .thresh-row.csig-buy{border-left-color:var(--down)}
 
-  .sig-badge{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;
-    border-radius:999px;vertical-align:middle;margin-left:2px}
+  .sig-badge{display:inline-block;font-size:14px;font-weight:700;padding:2px 8px;
+    border-radius:999px;vertical-align:middle;margin-left:7px}
   .sig-sell{background:rgba(229,72,77,.18);color:#ff9a9d}
   .sig-sellwatch{background:rgba(232,131,74,.18);color:#f0b483}
   .sig-hold{background:rgba(154,166,184,.15);color:var(--muted)}
@@ -602,6 +612,33 @@ const trendThresholdLines = {
   }
 };
 
+function showThresholdPopup(ai){
+  closeTrendModal();
+  const acc = (DATA.accounts || [])[ai];
+  if (!acc) return;
+  const th = acc.thresholds || {};
+  const sell = th.sell != null ? th.sell : 0.06;
+  const sellWatch = th.sellWatch != null ? th.sellWatch : 0.03;
+  const buyWatch = th.buyWatch != null ? th.buyWatch : -0.03;
+  const buy = th.buy != null ? th.buy : -0.06;
+  const p = v => (v>=0?'+':'') + (v*100).toFixed(1) + '%';
+
+  const el = document.createElement('div'); el.id = 'trendModal'; el.className = 'modal-overlay';
+  el.innerHTML = `<div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <b style="font-size:14px">${acc.name} 매매 기준</b>
+      <span style="font-size:15px;color:var(--dim)" onclick="closeTrendModal()">✕</span>
+    </div>
+    <div class="thresh-row csig-sell"><span>매도</span><span>괴리 ${p(sell)} 이상</span></div>
+    <div class="thresh-row csig-sellwatch"><span>매도 고민</span><span>괴리 ${p(sellWatch)} ~ ${p(sell)}</span></div>
+    <div class="thresh-row csig-hold"><span>관망</span><span>괴리 ${p(buyWatch)} ~ ${p(sellWatch)}</span></div>
+    <div class="thresh-row csig-buywatch"><span>매수 고민</span><span>괴리 ${p(buy)} ~ ${p(buyWatch)}</span></div>
+    <div class="thresh-row csig-buy"><span>매수</span><span>괴리 ${p(buy)} 미만</span></div>
+  </div>`;
+  el.addEventListener('click', e => { if (e.target === el) closeTrendModal(); });
+  document.body.appendChild(el);
+}
+
 function showTrendHistoryPopup(sym){
   closeTrendModal();
   trendPopupCurrentSym = sym;
@@ -808,9 +845,12 @@ function renderSummaryPage(){
     </div>
     <div class="fold-body ${isFolded('history')?'hidden':''}">
       <div class="chip-row" id="profitChips"></div>
-      <div class="compare-toggle-row">
+      <div class="compare-toggle-row" id="profitPresetRow" style="flex-wrap:wrap">
         <button class="compare-toggle" id="compareToggleBtn" onclick="toggleCompareMode()">비교</button>
         <button class="compare-toggle" onclick="toggleProfitDatePanel()">기간</button>
+        <button class="compare-toggle" data-preset="3m" onclick="setProfitPreset('3m')">3개월</button>
+        <button class="compare-toggle" data-preset="6m" onclick="setProfitPreset('6m')">6개월</button>
+        <button class="compare-toggle" data-preset="1y" onclick="setProfitPreset('1y')">1년</button>
         <button class="compare-toggle" onclick="resetProfitDateRange()">전체</button>
       </div>
       <div id="profitDatePanel" class="date-panel ${profitDatePanelOpen?'':'hidden'}">
@@ -840,6 +880,23 @@ function renderSummaryPage(){
       <select class="trend-sel" id="sectorAcctSel" onchange="onSectorAcctSel(this.value)"></select>
       <div class="chart-box"><canvas id="sectorChart"></canvas></div>
       <div id="sectorChartEmpty" class="cmp-hint" style="text-align:center;margin-top:8px"></div>
+    </div>
+  </div>`;
+
+  // ---- 전략 설정 (PC의 "전략 설정" 값을 읽기 전용으로 표시) ----
+  const nw = settings.nasdaqWeight != null ? settings.nasdaqWeight : 0.85;
+  const kw = settings.kospiWeight != null ? settings.kospiWeight : 0.25;
+  const plainPct = v => v != null ? (v*100).toFixed(1)+'%' : '-';
+  html += `<div class="chart-card">
+    ${foldHeader('전략 설정','strategy')}
+    <div class="fold-body ${isFolded('strategy')?'hidden':''}">
+      <div class="market-grid">
+        <div class="mkt-cell"><div class="mkt-k">최고점 기준 주식비중</div><div class="mkt-v">${plainPct(settings.peakStockRatio)}</div></div>
+        <div class="mkt-cell"><div class="mkt-k">국장 목표 배분</div><div class="mkt-v">${plainPct(settings.domesticTargetRatio)}</div></div>
+        <div class="mkt-cell"><div class="mkt-k">최대 낙폭 가정</div><div class="mkt-v">${plainPct(settings.maxDrawdownAssumption)}</div></div>
+        <div class="mkt-cell"><div class="mkt-k">나스닥·코스피 가중치</div><div class="mkt-v" style="font-size:12.5px">${nw} / ${kw}</div></div>
+      </div>
+      <div class="cmp-hint" style="margin-top:8px">값 수정은 PC 리밸런서에서만 가능합니다</div>
     </div>
   </div>`;
 
@@ -918,6 +975,7 @@ function renderAccountsPage(){
         <div>
           <div class="acct-name">${acc.name} ${sigBadge}</div>
           <div class="acct-sub">보유 ${r.rows.length}종목</div>
+          <div class="thresh-btn" onclick="event.stopPropagation();showThresholdPopup(${ai})">매매 기준</div>
         </div>
         <div style="display:flex;align-items:center">
           <div class="acct-right">
@@ -1028,6 +1086,8 @@ function renderAllPies(){
 // ==== 수익 금액 그래프 기간 필터 (localStorage에 저장돼 다음에도 기억됨) ====
 let profitDateRange = null;   // {from:'YYYY-MM-DD'|null, to:'YYYY-MM-DD'|null} 또는 null(전체 기간)
 try { profitDateRange = JSON.parse(localStorage.getItem('profitDateRange')) || null; } catch(e){}
+let profitPreset = null;   // '3m'|'6m'|'1y' — 직접 지정과 서로 배타적
+try { profitPreset = localStorage.getItem('profitPreset') || null; } catch(e){}
 let profitDatePanelOpen = false;
 
 function toggleProfitDatePanel(){
@@ -1039,15 +1099,37 @@ function applyProfitDateRange(){
   const from = yymmddToISO(document.getElementById('profitDateFrom').value);
   const to = yymmddToISO(document.getElementById('profitDateTo').value);
   profitDateRange = (from || to) ? { from, to } : null;
-  try { localStorage.setItem('profitDateRange', JSON.stringify(profitDateRange)); } catch(e){}
+  profitPreset = null;   // 직접 지정하면 프리셋은 해제
+  try {
+    localStorage.setItem('profitDateRange', JSON.stringify(profitDateRange));
+    localStorage.removeItem('profitPreset');
+  } catch(e){}
   renderHistoryChart();
 }
 function resetProfitDateRange(){
   profitDateRange = null;
-  try { localStorage.removeItem('profitDateRange'); } catch(e){}
+  profitPreset = null;
+  try { localStorage.removeItem('profitDateRange'); localStorage.removeItem('profitPreset'); } catch(e){}
   const f = document.getElementById('profitDateFrom'); if (f) f.value = '';
   const t = document.getElementById('profitDateTo'); if (t) t.value = '';
   renderHistoryChart();
+}
+function setProfitPreset(preset){
+  profitDateRange = null;   // 프리셋을 고르면 직접 지정은 해제
+  profitPreset = preset;
+  try {
+    localStorage.removeItem('profitDateRange');
+    localStorage.setItem('profitPreset', preset);
+  } catch(e){}
+  const f = document.getElementById('profitDateFrom'); if (f) f.value = '';
+  const t = document.getElementById('profitDateTo'); if (t) t.value = '';
+  renderHistoryChart();
+}
+function updateProfitPresetButtons(){
+  const active = profitDateRange ? null : profitPreset;
+  document.querySelectorAll('#profitPresetRow button').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.preset === active);
+  });
 }
 // 'YYYY-MM-DD' -> 'YYMMDD'
 function fmtYYMMDD(dateStr){
@@ -1099,7 +1181,7 @@ function updateCompareToggleUI(){
   const btn = document.getElementById('compareToggleBtn');
   if (btn) {
     btn.classList.toggle('active', compareModeOn);
-    btn.textContent = compareModeOn ? '비교 모드 켜짐 (다시 눌러 끄기)' : '두 지점 비교';
+    btn.textContent = '비교';
   }
   const hint = document.getElementById('cmpHint');
   if (hint) hint.style.display = compareModeOn ? 'block' : 'none';
@@ -1158,7 +1240,18 @@ function renderHistoryChart(){
   if (profitDateRange) {
     min = profitDateRange.from ? new Date(profitDateRange.from) : null;
     max = profitDateRange.to ? new Date(profitDateRange.to) : new Date();
+  } else if (profitPreset) {
+    max = new Date();
+    min = new Date(max);
+    if (profitPreset === '3m') min.setMonth(min.getMonth() - 3);
+    else if (profitPreset === '6m') min.setMonth(min.getMonth() - 6);
+    else if (profitPreset === '1y') min.setFullYear(min.getFullYear() - 1);
   }
+  // min/max가 실제 데이터의 첫날·마지막날과 정확히 겹치면 그 점이 축 경계에
+  // 딱 붙어 잘려 보인다. 날짜 자체에 반나절 정도 여유를 준다.
+  let xMin = min, xMax = max;
+  if (xMin) { xMin = new Date(xMin); xMin.setHours(xMin.getHours() - 12); }
+  if (xMax) { xMax = new Date(xMax); xMax.setHours(xMax.getHours() + 12); }
 
   const datasets = (DATA.accounts || [])
     .map((acc, i) => ({ acc, i }))
@@ -1181,6 +1274,7 @@ function renderHistoryChart(){
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      layout: { padding: { left: 12, right: 12 } },
       plugins: {
         legend: { display: false },
         tooltip: { callbacks: {
@@ -1189,7 +1283,7 @@ function renderHistoryChart(){
         } }
       },
       scales: {
-        x: { type: 'time', min, max,
+        x: { type: 'time', min: xMin, max: xMax,
           time: { tooltipFormat: 'yyyy-MM-dd' },
           ticks: { color: '#5c6773', maxTicksLimit: 6, font: { size: 10 },
             callback: (val) => fmtYYMMDD(new Date(val).toISOString().slice(0,10)) },
@@ -1230,6 +1324,7 @@ function renderHistoryChart(){
   cv.onpointerup = selectFromHover;
   cv.onpointercancel = selectFromHover;
   updateCompareToggleUI();
+  updateProfitPresetButtons();
 }
 
 function renderRatioChart(){
