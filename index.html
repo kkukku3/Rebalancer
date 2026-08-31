@@ -117,7 +117,8 @@
   .cmp-hint{font-size:10.5px;color:var(--dim);margin:-4px 0 8px}
   .compare-toggle-row{margin-bottom:6px;display:flex;align-items:center;gap:6px}
   .compare-toggle{font-size:11px;color:var(--muted);background:var(--panel2);
-    border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600}
+    border:1px solid var(--line);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;
+    min-width:44px;text-align:center}
   .compare-toggle.active{background:rgba(76,141,255,.18);border-color:var(--accent);color:var(--accent)}
   .cmp-box{background:var(--panel2);border:1px solid var(--line);border-radius:10px;
     padding:10px 12px;margin-top:8px;font-size:12px}
@@ -1231,10 +1232,29 @@ const comparePlugin = {
     comparePoints.forEach(d => {
       const x = scales.x.getPixelForValue(new Date(d).getTime());
       if (x == null || isNaN(x)) return;
+      // 세로 점선(x축 기준 — 선택한 날짜)
       ctx.save();
       ctx.setLineDash([5,4]); ctx.strokeStyle = '#8b98a5'; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
       ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
       ctx.restore();
+
+      // 계좌(데이터셋)별로 그 날짜의 값 위치에 가로 점선 + 점 표시(y축 기준)
+      chart.data.datasets.forEach(ds => {
+        const pt = (ds.data || []).find(p => p.x === d);
+        if (!pt || pt.y == null) return;
+        const y = scales.y.getPixelForValue(pt.y);
+        if (y == null || isNaN(y)) return;
+        const color = ds.borderColor || '#8b98a5';
+        ctx.save();
+        ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1; ctx.globalAlpha = .6;
+        ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(x, y); ctx.stroke();
+        ctx.restore();
+        ctx.save();
+        ctx.fillStyle = color;
+        ctx.beginPath(); ctx.arc(x, y, 3, 0, Math.PI*2); ctx.fill();
+        ctx.strokeStyle = '#0e1116'; ctx.lineWidth = 1; ctx.stroke();
+        ctx.restore();
+      });
     });
   }
 };
