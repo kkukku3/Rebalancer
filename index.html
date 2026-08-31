@@ -214,7 +214,8 @@
     -webkit-overflow-scrolling:touch;padding-right:2px}
   .pie-legend::-webkit-scrollbar{width:3px}
   .pie-legend::-webkit-scrollbar-thumb{background:var(--line);border-radius:2px}
-  .pie-legend-row{display:flex;align-items:center;gap:6px;padding:3.5px 0;font-size:10px;color:var(--muted)}
+  .pie-legend-row{display:flex;align-items:center;gap:6px;padding:3.5px 0;font-size:10px;color:var(--muted);cursor:pointer}
+  .pie-legend-row.off{opacity:.4;text-decoration:line-through}
   .pie-legend-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
   .pie-legend-name{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1;min-width:0}
   .h-row{display:flex;align-items:center;gap:10px;
@@ -964,6 +965,14 @@ function logoFallback(img){
   else { img.onerror = null; img.style.visibility = 'hidden'; }
 }
 
+let pieExcluded = {};   // {계좌인덱스: Set(제외된 종목명)}
+function togglePieExclude(ai, name){
+  if (!pieExcluded[ai]) pieExcluded[ai] = new Set();
+  if (pieExcluded[ai].has(name)) pieExcluded[ai].delete(name);
+  else pieExcluded[ai].add(name);
+  renderAllPies();
+}
+
 function renderAllPies(){
   const fx = (DATA.market && DATA.market.usdKrw) || 0;
   const settings = DATA.settings || {}, market = DATA.market || {};
@@ -972,13 +981,23 @@ function renderAllPies(){
     const cv = document.getElementById('pie-' + ai);
     if (!cv || !window.Chart) return;
     const r = computeAccount(acc, fx, settings, market);
+    const excluded = pieExcluded[ai] || new Set();
+
+    // 색은 "전체 목록 기준"으로 미리 정해두고, 어떤 종목을 뺐다 넣었다 해도
+    // 나머지 종목들 색은 안 바뀌게 한다.
+    const colorByName = {};
+    r.rows.forEach((row, i) => { colorByName[row.name] = CHART_COLORS[i % CHART_COLORS.length]; });
+    const visibleRows = r.rows.filter(row => !excluded.has(row.name));
+
     const key = 'pie' + ai;
     if (charts[key]) charts[key].destroy();
     charts[key] = new Chart(cv, {
       type: 'doughnut',
       data: {
-        labels: r.rows.map(x => x.name),
-        datasets: [{ data: r.rows.map(x => x.valKR), backgroundColor: CHART_COLORS, borderColor: '#111722', borderWidth: 2 }]
+        labels: visibleRows.map(x => x.name),
+        datasets: [{ data: visibleRows.map(x => x.valKR),
+          backgroundColor: visibleRows.map(x => colorByName[x.name]),
+          borderColor: '#111722', borderWidth: 2 }]
       },
       options: {
         responsive: true, maintainAspectRatio: false,
@@ -991,11 +1010,13 @@ function renderAllPies(){
 
     // Chart.js가 데이터 순서대로 색을 배정하는 것과 동일한 규칙(색 배열을 순서대로 순환)으로
     // HTML 범례를 만든다 — 이러면 원 그래프 색과 범례 색이 항상 일치한다.
+    // 범례 항목을 터치하면 그 종목만 파이 차트에서 뺐다 넣었다 할 수 있다(파이 조각 자체는 터치 대상 아님).
     const legendEl = document.getElementById('pieLegend-' + ai);
     if (legendEl) {
       legendEl.innerHTML = r.rows.map((row, i) => {
-        const color = CHART_COLORS[i % CHART_COLORS.length];
-        return `<div class="pie-legend-row">
+        const color = colorByName[row.name];
+        const isOff = excluded.has(row.name);
+        return `<div class="pie-legend-row ${isOff?'off':''}" onclick="togglePieExclude(${ai},'${row.name.replace(/'/g,"\\'")}')">
           <span class="pie-legend-dot" style="background:${color}"></span>
           <span class="pie-legend-name">${row.name}</span>
         </div>`;
