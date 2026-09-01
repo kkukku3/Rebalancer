@@ -1370,9 +1370,11 @@ function renderHistoryChart(){
       if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [lastHoverDate];
       else comparePoints.push(lastHoverDate);
       renderCompareBox();
+    } else if (singleMark) {
+      singleMark = null;   // 십자선이 떠 있는 상태에서 다시 터치하면 해제(위치 무관)
     } else {
       if (lastHoverPoint == null) return;
-      singleMark = lastHoverPoint;
+      singleMark = lastHoverPoint;   // 꺼져 있으면 이번에 터치한 점으로 표시
     }
     chart.draw();
   };
