@@ -1178,16 +1178,17 @@ function renderProfitChips(){
 }
 
 let comparePoints = [];
-let compareMarkers = [];   // [{date, datasetIndex}] — 차트에 실제로 크로스헤어를 그릴, "내가 클릭한 그 점"만 저장
+let singleMark = null;   // {date, datasetIndex} — 비교 모드가 꺼져 있을 때, 터치한 한 점의 십자선 표시용
 let compareModeOn = false;
 function toggleCompareMode(){
   compareModeOn = !compareModeOn;
   if (!compareModeOn) {
     comparePoints = [];
-    compareMarkers = [];
     renderCompareBox();
-    if (charts.historyChart) charts.historyChart.draw();
+  } else {
+    singleMark = null;   // 비교 모드를 켜면 십자선은 지우고 세로선 방식으로 전환
   }
+  if (charts.historyChart) charts.historyChart.draw();
   updateCompareToggleUI();
 }
 function updateCompareToggleUI(){
@@ -1201,7 +1202,6 @@ function updateCompareToggleUI(){
 }
 function clearCompare(){
   comparePoints = [];
-  compareMarkers = [];
   renderCompareBox();
   if (charts.historyChart) charts.historyChart.draw();
 }
@@ -1231,30 +1231,40 @@ function renderCompareBox(){
 const comparePlugin = {
   id: 'comparePlugin',
   afterDatasetsDraw(chart){
-    if (compareMarkers.length === 0) return;
     const { ctx, chartArea, scales } = chart;
-    compareMarkers.forEach(m => {
-      const ds = chart.data.datasets[m.datasetIndex];
-      if (!ds) return;
-      const pt = (ds.data || []).find(p => p.x === m.date);
-      if (!pt || pt.y == null) return;
-      const x = scales.x.getPixelForValue(new Date(m.date).getTime());
-      const y = scales.y.getPixelForValue(pt.y);
-      if (x == null || isNaN(x) || y == null || isNaN(y)) return;
-      const color = ds.borderColor || '#8b98a5';
+
+    // 비교 모드: 선택한 각 날짜에 세로 점선만 (값은 아래 텍스트 패널에 표시됨)
+    comparePoints.forEach(d => {
+      const x = scales.x.getPixelForValue(new Date(d).getTime());
+      if (x == null || isNaN(x)) return;
       ctx.save();
-      ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
-      // 세로 점선(x축 — 클릭한 날짜)
+      ctx.setLineDash([5,4]); ctx.strokeStyle = '#8b98a5'; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
       ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
-      // 가로 점선(y축 — 클릭한 그 계좌의 값)
-      ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(x, y); ctx.stroke();
-      ctx.restore();
-      ctx.save();
-      ctx.fillStyle = color;
-      ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
-      ctx.strokeStyle = '#0e1116'; ctx.lineWidth = 1; ctx.stroke();
       ctx.restore();
     });
+
+    // 비교 모드가 아닐 때 터치한 한 점: 가로+세로 십자선 + 점 표시
+    if (singleMark) {
+      const ds = chart.data.datasets[singleMark.datasetIndex];
+      const pt = ds ? (ds.data || []).find(p => p.x === singleMark.date) : null;
+      if (pt && pt.y != null) {
+        const x = scales.x.getPixelForValue(new Date(singleMark.date).getTime());
+        const y = scales.y.getPixelForValue(pt.y);
+        if (x != null && !isNaN(x) && y != null && !isNaN(y)) {
+          const color = ds.borderColor || '#8b98a5';
+          ctx.save();
+          ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
+          ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(x, y); ctx.stroke();
+          ctx.restore();
+          ctx.save();
+          ctx.fillStyle = color;
+          ctx.beginPath(); ctx.arc(x, y, 3.5, 0, Math.PI*2); ctx.fill();
+          ctx.strokeStyle = '#0e1116'; ctx.lineWidth = 1; ctx.stroke();
+          ctx.restore();
+        }
+      }
+    }
   }
 };
 
@@ -1336,30 +1346,38 @@ function renderHistoryChart(){
   // (cv.onX = ... 형태로 덮어쓰기 방식을 써서, 이 함수가 같은 캔버스에 대해
   //  여러 번 다시 호출돼도 리스너가 중복으로 쌓이지 않게 한다)
   const chart = charts.historyChart;
-  let lastHoverPoint = null;   // {date, datasetIndex} — 실제로 가장 가까운 "그 점" 하나만 기억
+  let lastHoverDate = null;      // 비교 모드용: 날짜만 있으면 충분
+  let lastHoverPoint = null;     // 비교 모드 아닐 때(십자선)용: 어느 계좌의 어느 점인지까지 기억
   const trackHover = (evt) => {
-    const points = chart.getElementsAtEventForMode(evt, 'nearest', {intersect:false}, true);
-    if (points.length) {
-      const p = points[0];
-      const pt = chart.data.datasets[p.datasetIndex].data[p.index];
-      if (pt) lastHoverPoint = { date: pt.x, datasetIndex: p.datasetIndex };
+    if (compareModeOn) {
+      const points = chart.getElementsAtEventForMode(evt, 'index', {intersect:false}, true);
+      if (points.length) {
+        const pt = chart.data.datasets[points[0].datasetIndex].data[points[0].index];
+        if (pt) lastHoverDate = pt.x;
+      }
+    } else {
+      const points = chart.getElementsAtEventForMode(evt, 'nearest', {intersect:false}, true);
+      if (points.length) {
+        const p = points[0];
+        const pt = chart.data.datasets[p.datasetIndex].data[p.index];
+        if (pt) lastHoverPoint = { date: pt.x, datasetIndex: p.datasetIndex };
+      }
     }
   };
   const selectFromHover = () => {
-    if (!compareModeOn) return;   // 비교 모드가 꺼져 있으면 값 조회만 하고 점은 안 찍음
-    if (lastHoverPoint == null) return;
-    if (comparePoints.length === 0 || comparePoints.length === 2) {
-      comparePoints = [lastHoverPoint.date];
-      compareMarkers = [lastHoverPoint];
+    if (compareModeOn) {
+      if (lastHoverDate == null) return;
+      if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [lastHoverDate];
+      else comparePoints.push(lastHoverDate);
+      renderCompareBox();
     } else {
-      comparePoints.push(lastHoverPoint.date);
-      compareMarkers.push(lastHoverPoint);
+      if (lastHoverPoint == null) return;
+      singleMark = lastHoverPoint;
     }
-    renderCompareBox();
     chart.draw();
   };
-  cv.onpointerdown = (evt) => { if (compareModeOn) { trackHover(evt); evt.preventDefault(); } };
-  cv.onpointermove = (evt) => { if (compareModeOn && (evt.pressure > 0 || evt.buttons > 0)) { trackHover(evt); evt.preventDefault(); } };
+  cv.onpointerdown = (evt) => { trackHover(evt); evt.preventDefault(); };
+  cv.onpointermove = (evt) => { if (evt.pressure > 0 || evt.buttons > 0) { trackHover(evt); evt.preventDefault(); } };
   cv.onpointerup = selectFromHover;
   cv.onpointercancel = selectFromHover;
   updateCompareToggleUI();
