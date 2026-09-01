@@ -1255,7 +1255,7 @@ const comparePlugin = {
           ctx.save();
           ctx.setLineDash([5,4]); ctx.strokeStyle = color; ctx.lineWidth = 1.2; ctx.globalAlpha = .8;
           ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
-          ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(x, y); ctx.stroke();
+          ctx.beginPath(); ctx.moveTo(chartArea.left, y); ctx.lineTo(chartArea.right, y); ctx.stroke();
           ctx.restore();
           ctx.save();
           ctx.fillStyle = color;
