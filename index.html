@@ -1372,6 +1372,7 @@ function renderHistoryChart(){
       renderCompareBox();
     } else if (singleMark) {
       singleMark = null;   // 십자선이 떠 있는 상태에서 다시 터치하면 해제(위치 무관)
+      chart.tooltip.setActiveElements([], {x:0, y:0});   // Chart.js 자체 값 툴팁도 함께 닫음
     } else {
       if (lastHoverPoint == null) return;
       singleMark = lastHoverPoint;   // 꺼져 있으면 이번에 터치한 점으로 표시
