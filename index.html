@@ -1011,7 +1011,7 @@ function renderSummaryPage(){
     ${foldHeader('전략 설정','strategy')}
     <div class="fold-body ${isFolded('strategy')?'hidden':''}">
       ${stratBody}
-      <div class="cmp-hint" style="margin-top:8px">${editMode ? '나스닥·코스피 가중치는 변경 시 경고가 뜹니다' : '수정 버튼(✎)을 눌러 값을 바꿀 수 있습니다'}</div>
+      ${editMode ? `<div class="cmp-hint" style="margin-top:8px">나스닥·코스피 가중치는 변경 시 경고가 뜹니다</div>` : ''}
     </div>
   </div>`;
 
@@ -1035,7 +1035,7 @@ function renderSummaryPage(){
     </div>`;
   }
 
-  html += `<div class="footer-note">${editMode ? '수정 후 우측 상단 저장 버튼을 눌러야 반영됩니다' : '보기 전용 페이지입니다 · 상단 ✎ 버튼으로 수정할 수 있습니다'}</div>`;
+  html += editMode ? `<div class="footer-note">수정 후 우측 상단 저장 버튼을 눌러야 반영됩니다</div>` : '';
 
   document.getElementById('page-summary').innerHTML = html;
   renderProfitChips();
@@ -1206,7 +1206,7 @@ function renderAccountsPage(){
           const rateStr = row.rate==null ? '-' : pct(row.rate);
           return `
         <div class="h-row">
-          ${logoImg(row)}
+          ${logoImg(row, ai)}
           <div class="h-mid">
             <div class="h-name">${row.name}</div>
             <div class="h-sub">${row.qty}주 · ${priceStr}</div>
@@ -1310,12 +1310,39 @@ function renderAccountsPage(){
   document.getElementById('page-accounts').innerHTML = html;
 }
 
-function logoImg(row){
+function logoImg(row, ai){
   const letter = (row.name || row.code || '?').trim().charAt(0);
   const list = (row.logos && row.logos.length) ? row.logos : (row.logo ? [row.logo] : []);
   if (!list.length) return `<span class="h-avatar">${letter}</span>`;
   const json = JSON.stringify(list).replace(/"/g,'&quot;');
-  return `<img class="h-logo" src="${list[0]}" data-cands="${json}" data-i="0" onerror="logoFallback(this)">`;
+  const idAttrs = (ai != null && row.hi != null) ? `data-ai="${ai}" data-hi="${row.hi}"` : '';
+  const clickAttr = (ai != null && row.hi != null) ? `onclick="logoCycle(this)" style="cursor:pointer"` : '';
+  return `<img class="h-logo" src="${list[0]}" data-cands="${json}" data-i="0" ${idAttrs} ${clickAttr} onerror="logoFallback(this)">`;
+}
+// 앰블럼을 탭하면 다음 후보로 순환한다. 다른 수정과 달리, 이 기능만 예외로
+// 수정 모드와 무관하게 클릭 즉시 조용히 구글 드라이브에 저장된다.
+async function logoCycle(img){
+  let list = []; try{ list = JSON.parse(img.getAttribute('data-cands')); }catch(e){}
+  if (!list.length) return;
+  let i = parseInt(img.getAttribute('data-i')||'0',10) + 1;
+  if (i >= list.length) i = 0;   // 마지막 후보 다음엔 처음으로 순환
+  img.setAttribute('data-i', i);
+  img.src = list[i];
+  const ai = img.getAttribute('data-ai'), hi = img.getAttribute('data-hi');
+  if (ai == null || hi == null) return;
+  const h = DATA.accounts[ai] && DATA.accounts[ai].holdings[hi];
+  if (!h) return;
+  // 고른 후보를 맨 앞으로 보내 다음부터도 이 로고가 먼저 시도되게 고정
+  const chosen = list[i];
+  h.logos = [chosen, ...list.filter(u => u !== chosen)];
+  h.logo = chosen;
+  h.logoPinned = true;   // 사용자가 직접 고른 값이므로 이후 자동 재계산에서 제외
+  try {
+    await driveSave();
+    document.getElementById('updatedAt').textContent = '마지막 저장 · ' + new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+  } catch(e) {
+    console.error('로고 선택 저장 실패:', e);
+  }
 }
 function logoFallback(img){
   let list = []; try{ list = JSON.parse(img.getAttribute('data-cands')); }catch(e){}
