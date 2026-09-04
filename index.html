@@ -303,6 +303,9 @@
       <div class="icon-btn" id="editBtn" onclick="toggleEditMode()" title="수정">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
       </div>
+      <div class="icon-btn" id="updateBtn" onclick="triggerUpdate()" title="업데이트(시세 갱신)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M13 2 4 14h6l-1 8 9-12h-6l1-8Z" stroke-linejoin="round"/></svg>
+      </div>
       <div class="icon-btn" id="refreshBtn" onclick="loadPortfolio()" title="새로고침">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
       </div>
@@ -497,6 +500,40 @@ async function driveSave(retried){
   }
   if (!r.ok) throw new Error('저장 실패 (' + r.status + ')');
   return r.json();
+}
+
+// 모바일 자체적으로는 야후·네이버에 직접 접속해 시세를 계산할 수 없으므로(브라우저 보안 정책에 막힘),
+// 대신 깃허브 자동화(cloud_update.py)를 그 자리에서 즉시 한 번 실행시키도록 요청한다.
+// 이 저장소(Rebalancer)의 Actions 실행 권한만 있는 좁은 토큰을 사용한다.
+const GH_OWNER = 'kkukku3';
+const GH_REPO = 'Rebalancer';
+const GH_WORKFLOW = 'update.yml';
+const GH_PAT = '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';   // Actions 쓰기 권한만 있는 fine-grained 토큰
+
+async function triggerUpdate(){
+  const btn = document.getElementById('updateBtn');
+  btn.classList.add('spin');
+  document.getElementById('updatedAt').textContent = '업데이트 요청 중…';
+  try {
+    const r = await fetch(`https://api.github.com/repos/${GH_OWNER}/${GH_REPO}/actions/workflows/${GH_WORKFLOW}/dispatches`, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'token ' + GH_PAT,
+        'Accept': 'application/vnd.github+json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ ref: 'main' })
+    });
+    if (!r.ok) throw new Error('요청 실패 (' + r.status + ')');
+    document.getElementById('updatedAt').textContent = '업데이트 실행 중… (약 25초)';
+    await new Promise(res => setTimeout(res, 25000));   // 자동화가 끝날 때까지 기다림
+    await loadPortfolio();   // 끝나면 자동으로 최신 내용을 다시 불러옴
+  } catch(e) {
+    alert('업데이트 요청 실패: ' + (e.message || String(e)));
+    document.getElementById('updatedAt').textContent = '업데이트 요청 실패';
+  } finally {
+    btn.classList.remove('spin');
+  }
 }
 
 async function loadPortfolio(){
