@@ -340,7 +340,7 @@ function toggleEditMode(){
   if (editMode) return;   // 켤 때만 이 버튼으로; 끄는 건 저장/취소 버튼으로
   editMode = true;
   editBackup = JSON.parse(JSON.stringify(DATA));   // 취소 시 되돌릴 원본
-  (DATA.accounts || []).forEach(acc => { openAccts[acc.name] = true; });   // 편집 필드가 바로 보이게 전부 펼침
+  (DATA.accounts || []).forEach(acc => { openAccts[acc.name] = false; });   // 기본은 접힌 상태로 시작
   document.getElementById('editBtn').classList.add('editing');
   document.getElementById('editModeBar').style.display = 'flex';
   render();
@@ -458,6 +458,22 @@ function silentRefresh(){
   });
 }
 
+// 쓰기 권한이 새로 추가된 경우, 기존 로그인은 여전히 읽기 전용 토큰일 수 있다.
+// 조용한(prompt:'') 갱신으로는 새 권한을 절대 못 받으므로, 동의 화면을 직접 띄워
+// 확실하게 쓰기 권한을 새로 받는다.
+function interactiveWriteConsent(){
+  return new Promise((resolve) => {
+    const prevCb = tokenClient.callback;
+    tokenClient.callback = (resp) => {
+      tokenClient.callback = prevCb;
+      if (resp.error) { resolve(false); return; }
+      accessToken = resp.access_token;
+      resolve(true);
+    };
+    tokenClient.requestAccessToken({ prompt: 'consent' });
+  });
+}
+
 // 수정 모드에서 저장할 때만 호출됨. 평소 읽기(driveFetch)와 똑같이,
 // 로그인이 그새 끊겼으면 조용히 한 번 갱신해보고 재시도한다.
 async function driveSave(retried){
@@ -467,12 +483,17 @@ async function driveSave(retried){
     headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
     body: JSON.stringify(DATA)
   });
-  if (r.status === 401) {
-    if (!retried) {
-      const refreshed = await silentRefresh();
-      if (refreshed) return driveSave(true);
-    }
+  if (r.status === 401 && !retried) {
+    const refreshed = await silentRefresh();
+    if (refreshed) return driveSave(true);
     throw new Error('로그인이 만료됐습니다. 다시 로그인해주세요.');
+  }
+  if (r.status === 403 && !retried) {
+    // 예전에 읽기 전용으로만 로그인해뒀던 경우, 조용한 갱신으로는 쓰기 권한을
+    // 못 받으므로 동의 화면을 직접 띄워 확실하게 새 권한을 받는다.
+    const upgraded = await interactiveWriteConsent();
+    if (upgraded) return driveSave(true);
+    throw new Error('구글 드라이브 쓰기 권한이 필요합니다. 방금 뜬 동의 화면에서 허용해주세요.');
   }
   if (!r.ok) throw new Error('저장 실패 (' + r.status + ')');
   return r.json();
@@ -1163,8 +1184,8 @@ function renderAccountsPage(){
             <input class="ef-input" value="${h.name||''}" onchange="setH(${ai},${row.hi},'name',this.value)" placeholder="종목명(자동)">
           </div>
           <div style="width:100%;display:flex;gap:6px;margin-top:5px">
-            <input class="ef-input" value="${h.qty||0}" onchange="setH(${ai},${row.hi},'qty',this.value)" placeholder="수량">
-            <input class="ef-input" value="${h.avgPrice||0}" onchange="setH(${ai},${row.hi},'avgPrice',this.value)" placeholder="평단가">
+            <input class="ef-input" value="${h.qty?h.qty:''}" onchange="setH(${ai},${row.hi},'qty',this.value)" placeholder="수량">
+            <input class="ef-input" value="${h.avgPrice?h.avgPrice:''}" onchange="setH(${ai},${row.hi},'avgPrice',this.value)" placeholder="평단가">
           </div>
         </div>`;
         }).join('')
