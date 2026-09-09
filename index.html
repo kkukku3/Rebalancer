@@ -722,6 +722,29 @@ const trendThresholdLines = {
   }
 };
 
+function showCashPopup(ai){
+  closeTrendModal();
+  const acc = (DATA.accounts || [])[ai];
+  if (!acc) return;
+  const fx = (DATA.market && DATA.market.usdKrw) || 0;
+  const cashKRW = acc.cashKRW || 0;
+  const cashUSD = acc.cashUSD || 0;
+  const cashUSDinKRW = cashUSD * fx;
+
+  const el = document.createElement('div'); el.id = 'trendModal'; el.className = 'modal-overlay';
+  el.innerHTML = `<div class="modal-box">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
+      <b style="font-size:14px">${acc.name} 예수금</b>
+      <span style="font-size:15px;color:var(--dim)" onclick="closeTrendModal()">✕</span>
+    </div>
+    <div class="thresh-row"><span>국장 예수금</span><span>${won(cashKRW)}원</span></div>
+    <div class="thresh-row"><span>미장 예수금</span><span>${numUS(cashUSD)} USD</span></div>
+    <div class="thresh-row"><span>미장 예수금(원화 환산)</span><span>${won(cashUSDinKRW)}원</span></div>
+  </div>`;
+  el.addEventListener('click', e => { if (e.target === el) closeTrendModal(); });
+  document.body.appendChild(el);
+}
+
 function showThresholdPopup(ai){
   closeTrendModal();
   const acc = (DATA.accounts || [])[ai];
@@ -1271,7 +1294,10 @@ function renderAccountsPage(){
         <div>
           <div class="acct-name">${acc.name} ${sigBadge}</div>
           <div class="acct-sub">보유 ${r.rows.length}종목</div>
-          <div class="thresh-btn" onclick="event.stopPropagation();showThresholdPopup(${ai})">매매 기준</div>
+          <div style="display:flex;gap:6px">
+            <div class="thresh-btn" onclick="event.stopPropagation();showThresholdPopup(${ai})">매매 기준</div>
+            <div class="thresh-btn" onclick="event.stopPropagation();showCashPopup(${ai})">예수금</div>
+          </div>
         </div>
         <div style="display:flex;align-items:center">
           <div class="acct-right">
