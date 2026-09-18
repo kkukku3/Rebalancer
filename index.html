@@ -1207,9 +1207,13 @@ function renderAccountsPage(){
           <div style="width:100%;display:flex;gap:6px;margin-top:5px">
             <input class="ef-input" style="color:var(--dim)" value="${h.name||''}" readonly placeholder="종목명(자동 반영, 수정 불가)">
           </div>
-          <div style="width:100%;display:flex;gap:6px;margin-top:5px">
-            <input class="ef-input" value="${h.qty?h.qty:''}" onchange="setH(${ai},${row.hi},'qty',this.value)" placeholder="수량">
-            <input class="ef-input" value="${h.avgPrice?h.avgPrice:''}" onchange="setH(${ai},${row.hi},'avgPrice',this.value)" placeholder="평단가">
+          <div style="width:100%;display:flex;align-items:center;gap:6px;margin-top:5px">
+            <span style="font-size:11px;color:var(--dim);width:50px;flex-shrink:0">수량</span>
+            <input class="ef-input" style="width:90px;flex:0 0 90px" value="${h.qty?h.qty:''}" onchange="setH(${ai},${row.hi},'qty',this.value)">
+          </div>
+          <div style="width:100%;display:flex;align-items:center;gap:6px;margin-top:5px">
+            <span style="font-size:11px;color:var(--dim);width:50px;flex-shrink:0">평단가</span>
+            <input class="ef-input" style="width:90px;flex:0 0 90px" value="${h.avgPrice?h.avgPrice:''}" onchange="setH(${ai},${row.hi},'avgPrice',this.value)">
           </div>
         </div>`;
         }).join('')
@@ -1280,11 +1284,14 @@ function renderAccountsPage(){
       <div class="ef-row"><label>국장 전용</label>
         <input type="checkbox" ${acc.krOnly?'checked':''} onchange="setKrOnly(${ai},this.checked)">
       </div>
-      <div class="ef-row" style="flex-wrap:wrap"><label style="width:100%;margin-bottom:4px">매매 기준(%)</label>
-        <input class="ef-input" value="${th.sell!=null?(th.sell*100):6}" onchange="setTh(${ai},'sell',this.value)" placeholder="매도">
-        <input class="ef-input" value="${th.sellWatch!=null?(th.sellWatch*100):3}" onchange="setTh(${ai},'sellWatch',this.value)" placeholder="매도고민">
-        <input class="ef-input" value="${th.buyWatch!=null?(th.buyWatch*100):-3}" onchange="setTh(${ai},'buyWatch',this.value)" placeholder="매수고민">
-        <input class="ef-input" value="${th.buy!=null?(th.buy*100):-6}" onchange="setTh(${ai},'buy',this.value)" placeholder="매수">
+      <label style="font-size:11px;color:var(--dim);display:block;margin:8px 0 4px">매매 기준(%)</label>
+      <div class="ef-row" style="gap:6px">
+        <label style="width:auto">매도</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.sell!=null?(th.sell*100):6}" onchange="setTh(${ai},'sell',this.value)">
+        <label style="width:auto;margin-left:10px">매도 고려</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.sellWatch!=null?(th.sellWatch*100):3}" onchange="setTh(${ai},'sellWatch',this.value)">
+      </div>
+      <div class="ef-row" style="gap:6px">
+        <label style="width:auto">매수</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.buy!=null?(th.buy*100):-6}" onchange="setTh(${ai},'buy',this.value)">
+        <label style="width:auto;margin-left:10px">매수 고려</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.buyWatch!=null?(th.buyWatch*100):-3}" onchange="setTh(${ai},'buyWatch',this.value)">
       </div>
       <button class="ef-add-btn" style="border-color:var(--up);color:var(--up)" onclick="event.stopPropagation();deleteAccount(${ai})">계좌 삭제</button>
     ` : '';
@@ -1769,6 +1776,8 @@ function renderHistoryChart(){
     } else if (singleMark) {
       singleMark = null;   // 십자선이 떠 있는 상태에서 다시 터치하면 해제(위치 무관)
       chart.tooltip.setActiveElements([], {x:0, y:0});   // Chart.js 자체 값 툴팁도 함께 닫음
+      chart.setActiveElements([]);   // 점이 커져 보이는 강조 효과(hover 상태)도 함께 해제
+      chart.update('none');
     } else {
       if (lastHoverPoint == null) return;
       singleMark = lastHoverPoint;   // 꺼져 있으면 이번에 터치한 점으로 표시
