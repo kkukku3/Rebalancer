@@ -1205,7 +1205,7 @@ function renderAccountsPage(){
             <span class="ef-del" onclick="delH(${ai},${row.hi})">✕</span>
           </div>
           <div style="width:100%;display:flex;gap:6px;margin-top:5px">
-            <input class="ef-input" value="${h.name||''}" onchange="setH(${ai},${row.hi},'name',this.value)" placeholder="종목명(자동)">
+            <input class="ef-input" style="color:var(--dim)" value="${h.name||''}" readonly placeholder="종목명(자동 반영, 수정 불가)">
           </div>
           <div style="width:100%;display:flex;gap:6px;margin-top:5px">
             <input class="ef-input" value="${h.qty?h.qty:''}" onchange="setH(${ai},${row.hi},'qty',this.value)" placeholder="수량">
