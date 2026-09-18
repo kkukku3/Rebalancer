@@ -1606,9 +1606,9 @@ const comparePlugin = {
       ctx.restore();
     });
 
-    // 비교 모드에서 아직 손을 안 뗀, 드래그 중인 위치 미리보기(확정된 비교 지점보다
+    // 아직 손을 안 뗀, 드래그 중인 위치 미리보기(모드와 무관하게 항상 표시) — 확정된 비교 지점보다
     // 옅고 얇게 그려서, "여기서 손을 떼면 이 날짜가 찍힌다"는 걸 실시간으로 보여준다.
-    if (compareModeOn && previewDate != null) {
+    if (previewDate != null) {
       const x = scales.x.getPixelForValue(new Date(previewDate).getTime());
       if (x != null && !isNaN(x)) {
         ctx.save();
@@ -1783,11 +1783,11 @@ function renderHistoryChart(){
     }
   };
   const selectFromHover = () => {
+    previewDate = null;   // 어느 모드든, 확정되는 순간 미리보기 선은 끈다
     if (compareModeOn) {
       if (lastHoverDate == null) return;
       if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [lastHoverDate];
       else comparePoints.push(lastHoverDate);
-      previewDate = null;   // 확정됐으니 미리보기 선은 끄고, 확정 선(comparePoints)만 남긴다
       renderCompareBox();
     } else if (singleMark) {
       singleMark = null;   // 십자선이 떠 있는 상태에서 다시 터치하면 해제(위치 무관)
@@ -1800,14 +1800,14 @@ function renderHistoryChart(){
     }
     chart.draw();
   };
-  cv.onpointerdown = (evt) => {
-    trackHover(evt); evt.preventDefault();
-    if (compareModeOn) { previewDate = lastHoverDate; chart.draw(); }
+  const updatePreview = () => {
+    previewDate = compareModeOn ? lastHoverDate : (lastHoverPoint ? lastHoverPoint.date : null);
+    chart.draw();
   };
+  cv.onpointerdown = (evt) => { trackHover(evt); evt.preventDefault(); updatePreview(); };
   cv.onpointermove = (evt) => {
     if (evt.pressure > 0 || evt.buttons > 0) {
-      trackHover(evt); evt.preventDefault();
-      if (compareModeOn) { previewDate = lastHoverDate; chart.draw(); }   // 드래그 중 실시간 미리보기
+      trackHover(evt); evt.preventDefault(); updatePreview();   // 드래그 중 실시간 미리보기(모드 공통)
     }
   };
   cv.onpointerup = selectFromHover;
