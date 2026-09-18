@@ -1724,6 +1724,7 @@ function renderHistoryChart(){
     options: {
       responsive: true, maintainAspectRatio: false,
       interaction: { mode: 'index', intersect: false },
+      events: [],   // Chart.js 자체 터치/호버 감지를 완전히 꺼서, 점선·값상자·점강조를 전부 우리 코드만 책임지게 한다(안 그러면 둘이 경쟁해서 간헐적으로 안 지워짐)
       layout: { padding: { left: 12, right: 12 } },
       plugins: {
         legend: { display: false },
