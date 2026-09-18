@@ -1539,12 +1539,14 @@ function renderProfitChips(){
 }
 
 let comparePoints = [];
+let previewDate = null;   // 비교 모드에서 드래그하는 동안, 아직 손을 안 뗀 "지금 가리키는 위치" 미리보기
 let singleMark = null;   // {date, datasetIndex} — 비교 모드가 꺼져 있을 때, 터치한 한 점의 십자선 표시용
 let compareModeOn = false;
 function toggleCompareMode(){
   compareModeOn = !compareModeOn;
   if (!compareModeOn) {
     comparePoints = [];
+    previewDate = null;
     renderCompareBox();
   } else {
     singleMark = null;   // 비교 모드를 켜면 십자선은 지우고 세로선 방식으로 전환
@@ -1604,6 +1606,18 @@ const comparePlugin = {
       ctx.restore();
     });
 
+    // 비교 모드에서 아직 손을 안 뗀, 드래그 중인 위치 미리보기(확정된 비교 지점보다
+    // 옅고 얇게 그려서, "여기서 손을 떼면 이 날짜가 찍힌다"는 걸 실시간으로 보여준다.
+    if (compareModeOn && previewDate != null) {
+      const x = scales.x.getPixelForValue(new Date(previewDate).getTime());
+      if (x != null && !isNaN(x)) {
+        ctx.save();
+        ctx.setLineDash([2,3]); ctx.strokeStyle = '#8b98a5'; ctx.lineWidth = 1; ctx.globalAlpha = .4;
+        ctx.beginPath(); ctx.moveTo(x, chartArea.top); ctx.lineTo(x, chartArea.bottom); ctx.stroke();
+        ctx.restore();
+      }
+    }
+
     // 비교 모드가 아닐 때 터치한 한 점: 가로+세로 십자선 + 점 + 값 상자
     if (singleMark) {
       const ds = chart.data.datasets[singleMark.datasetIndex];
@@ -1648,7 +1662,7 @@ const comparePlugin = {
             let by = Math.max(chartArea.top, Math.min(chartArea.top + 10, chartArea.bottom - boxH));
 
             ctx.save();
-            ctx.fillStyle = 'rgba(15,20,28,.96)';
+            ctx.fillStyle = 'rgba(15,20,28,.82)';
             ctx.strokeStyle = 'rgba(255,255,255,.08)'; ctx.lineWidth = 1;
             ctx.beginPath(); ctx.roundRect(bx, by, boxW, boxH, 8); ctx.fill(); ctx.stroke();
 
@@ -1773,6 +1787,7 @@ function renderHistoryChart(){
       if (lastHoverDate == null) return;
       if (comparePoints.length === 0 || comparePoints.length === 2) comparePoints = [lastHoverDate];
       else comparePoints.push(lastHoverDate);
+      previewDate = null;   // 확정됐으니 미리보기 선은 끄고, 확정 선(comparePoints)만 남긴다
       renderCompareBox();
     } else if (singleMark) {
       singleMark = null;   // 십자선이 떠 있는 상태에서 다시 터치하면 해제(위치 무관)
@@ -1785,8 +1800,16 @@ function renderHistoryChart(){
     }
     chart.draw();
   };
-  cv.onpointerdown = (evt) => { trackHover(evt); evt.preventDefault(); };
-  cv.onpointermove = (evt) => { if (evt.pressure > 0 || evt.buttons > 0) { trackHover(evt); evt.preventDefault(); } };
+  cv.onpointerdown = (evt) => {
+    trackHover(evt); evt.preventDefault();
+    if (compareModeOn) { previewDate = lastHoverDate; chart.draw(); }
+  };
+  cv.onpointermove = (evt) => {
+    if (evt.pressure > 0 || evt.buttons > 0) {
+      trackHover(evt); evt.preventDefault();
+      if (compareModeOn) { previewDate = lastHoverDate; chart.draw(); }   // 드래그 중 실시간 미리보기
+    }
+  };
   cv.onpointerup = selectFromHover;
   cv.onpointercancel = selectFromHover;
   updateCompareToggleUI();
