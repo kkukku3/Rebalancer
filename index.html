@@ -269,13 +269,15 @@
   #app{display:none}
   .page{display:none}
   .page.active{display:block}
+  .stale-banner{display:none;margin:8px 12px 0;padding:9px 12px;border-radius:10px;font-size:12px;line-height:1.55;
+    background:rgba(229,72,77,.12);border:1px solid rgba(229,72,77,.45);color:#ff9a9d}
 </style>
 </head>
 <body>
 
 <div id="loginScreen" class="wrap">
   <div class="brand-text">Rebalancer</div>
-  <p>PC 리밸런서가 구글 드라이브에 저장한<br>최신 데이터를 읽기 전용으로 확인합니다.</p>
+  <p>PC 리밸런서와 같은 구글 드라이브 데이터를<br>확인하고, 수정 모드에서 고칠 수 있습니다.</p>
   <div id="autoChecking" class="auto-checking">
     <div class="spinner"></div>
     <div>로그인 확인 중…</div>
@@ -310,6 +312,7 @@
     </div>
   </header>
 
+  <div id="staleBanner" class="stale-banner"></div>
   <div class="tabbar">
     <div class="tab-btn active" id="tab-summary" onclick="switchTab('summary')">요약</div>
     <div class="tab-btn" id="tab-accounts" onclick="switchTab('accounts')">계좌</div>
@@ -322,10 +325,78 @@
 </div>
 
 <script>
+// ▼ 모바일용 구글 클라이언트 ID.
+//   가이드의 '준비 3'(PC와 같은 프로젝트에 웹 클라이언트 ID 추가)을 했다면 그 새 ID로 바꾸세요.
+//   PC와 같은 프로젝트(번호 285079439677)의 ID로 바뀌면 권한이 자동으로
+//   '드라이브 전체' → '리밸런서가 만든 파일만'(drive.file)으로 줄어듭니다.
 const CLIENT_ID = '155085390291-minre2sngn71m9rsjdnssrmlc0u2178q.apps.googleusercontent.com';
-const SCOPE = 'https://www.googleapis.com/auth/drive https://www.googleapis.com/auth/userinfo.email';
+const PC_PROJECT_NUMBER = '285079439677';
+const NARROW_SCOPE = CLIENT_ID.startsWith(PC_PROJECT_NUMBER + '-');
+const SCOPE = (NARROW_SCOPE ? 'https://www.googleapis.com/auth/drive.file' : 'https://www.googleapis.com/auth/drive')
+  + ' https://www.googleapis.com/auth/userinfo.email';
 const FOLDER_NAME = 'Rebalancer';
 const FILE_NAME = 'portfolio.json';
+const PRICES_NAME = 'prices.json';
+
+// 글자를 HTML 에 넣기 전에 꼭 거치는 함수 (계좌·종목 이름에 < > " 등이 있어도 안전)
+const esc = s => String(s==null?'':s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const jsa = v => esc(JSON.stringify(v));   // onclick="f(${jsa(값)})"
+
+// ---- 데이터는 두 파일: portfolio.json(사람이 고침) + prices.json(자동 시세) ----
+// 화면은 두 파일을 합친 DATA 를 쓰고, 저장할 때는 portfolio 부분만 떼어 portfolio.json 에 쓴다.
+// (core.py 의 merge_view / extract_portfolio 와 같은 규칙)
+const QUOTE_FIELDS = ['price','preMarketPrice','preMarketChangePercent','postMarketPrice','postMarketChangePercent',
+  'afterHoursPrice','afterHoursChangePercent','marketState'];
+const PRICES_KEYS = ['market','quotes','hist','histFetched','trendSignals','trendHistory','history','updatedAt'];
+const LEGACY_KEYS = ['qqq','qqqSignals'];
+let PORTFOLIO_RAW = null, PRICES_RAW = null;
+let portfolioModified = null, pricesFileId = null, pricesModified = null, folderId = null;
+
+function qkey(h){
+  const code = String(h.code||'').trim().toUpperCase();
+  return h.market === 'US' ? 'US:' + code : 'KR:' + code.padStart(6, '0');
+}
+function isMigrated(p){ return !!p && p.version === 2 && (p.accounts||[]).every(a => a.id); }
+function applyQuote(h, q){
+  if (!q) return;
+  QUOTE_FIELDS.forEach(f => { if (q[f] != null) h[f] = q[f]; else delete h[f]; });
+  const code = String(h.code||'').trim(), nm = String(h.name||'').trim();
+  if (q.name && (!nm || nm.toUpperCase() === code.toUpperCase())) h.name = q.name;
+  let cands = (q.logos || []).slice();
+  if (h.logoPinned && h.logo) cands = [h.logo, ...cands.filter(c => c !== h.logo)];
+  else if (cands.length) h.logo = cands[0];
+  if (cands.length) h.logos = cands;
+}
+function mergeView(p, pr){
+  const v = JSON.parse(JSON.stringify(p || {}));
+  pr = pr || {};
+  ['market','trendSignals','trendHistory','history','updatedAt'].forEach(k => { if (pr[k] !== undefined) v[k] = JSON.parse(JSON.stringify(pr[k])); });
+  v.market = v.market || {}; v.history = v.history || [];
+  const quotes = pr.quotes || {};
+  (v.accounts || []).forEach(a => (a.holdings || []).forEach(h => applyQuote(h, quotes[qkey(h)])));
+  return v;
+}
+function extractPortfolio(view){
+  const p = JSON.parse(JSON.stringify(view || {}));
+  Object.keys(p).forEach(k => { if (PRICES_KEYS.includes(k) || LEGACY_KEYS.includes(k) || k.startsWith('_')) delete p[k]; });
+  (p.accounts || []).forEach(a => (a.holdings || []).forEach(h => {
+    QUOTE_FIELDS.concat(['logos','logoVer']).forEach(f => delete h[f]);
+    if (!h.logoPinned) delete h.logo;
+  }));
+  p.version = 2;
+  return p;
+}
+// 수익 기록은 계좌 id 로 저장(이름을 바꿔도 그래프가 이어짐). 예전 기록은 이름으로도 찾는다.
+function profitOf(row, acc){
+  const p = (row && row.profits) || {};
+  if (p[acc.id] != null) return p[acc.id];
+  return p[acc.name] != null ? p[acc.name] : null;
+}
+function newAccountId(){
+  const ids = new Set((DATA.accounts || []).map(a => a.id)); let id;
+  do { id = 'a' + Math.random().toString(36).slice(2, 9); } while (ids.has(id) || id.length < 8);
+  return id;
+}
 
 let tokenClient = null;
 let accessToken = null;
@@ -341,7 +412,7 @@ function toggleEditMode(){
   if (editMode) { cancelEditMode(); return; }   // 이미 켜져 있으면 이 버튼이 취소 역할
   editMode = true;
   editBackup = JSON.parse(JSON.stringify(DATA));   // 취소 시 되돌릴 원본
-  (DATA.accounts || []).forEach(acc => { openAccts[acc.name] = false; });   // 기본은 접힌 상태로 시작
+  (DATA.accounts || []).forEach(acc => { openAccts[acc.id] = false; });   // 기본은 접힌 상태로 시작
   document.getElementById('editBtn').classList.add('editing');
   document.getElementById('editModeBar').style.display = 'flex';
   render();
@@ -357,10 +428,19 @@ async function saveEditMode(){
   const btn = document.getElementById('saveEditBtn');
   btn.classList.add('spin');
   try {
-    await driveSave();
+    try {
+      await driveSave();
+    } catch(e) {
+      if (!e.conflict) throw e;
+      // 수정하는 사이에 PC 등 다른 기기에서 먼저 저장한 경우
+      const overwrite = confirm('수정하는 사이에 다른 기기(PC 등)에서 먼저 저장한 내용이 있어요.\n\n'
+        + '[확인] 지금 내 수정 내용으로 덮어쓰기\n[취소] 저장하지 않고 최신 내용 다시 불러오기');
+      if (!overwrite) { editBackup = null; exitEditModeUI(); await loadPortfolio(); return; }
+      await driveSave({ overwrite: true });
+    }
     editBackup = null;
     exitEditModeUI();
-    document.getElementById('updatedAt').textContent = '마지막 저장 · ' + new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    setUpdatedLabel();
     render();
   } catch(e) {
     btn.classList.remove('spin');
@@ -475,25 +555,39 @@ function interactiveWriteConsent(){
   });
 }
 
-// 수정 모드에서 저장할 때만 호출됨. 평소 읽기(driveFetch)와 똑같이,
-// 로그인이 그새 끊겼으면 조용히 한 번 갱신해보고 재시도한다.
-async function driveSave(retried){
+// portfolio.json 만 저장한다(시세가 들어 있는 prices.json 은 자동 업데이트가 관리).
+// 불러온 뒤 다른 기기가 먼저 저장했으면 덮어쓰지 않고 conflict 오류를 낸다(opts.overwrite 로 무시 가능).
+async function driveSave(opts){
+  opts = opts || {};
   if (!currentFileId) throw new Error('파일 정보를 아직 찾지 못했습니다. 새로고침 후 다시 시도해주세요.');
-  const r = await fetch(`https://www.googleapis.com/upload/drive/v3/files/${currentFileId}?uploadType=media`, {
+  if (!isMigrated(PORTFOLIO_RAW)) throw new Error('PC 리밸런서 새 버전을 먼저 한 번 실행해 주세요(데이터 형식 변환이 필요합니다).');
+  if (!opts.overwrite && portfolioModified) {
+    const meta = await driveFetch(`https://www.googleapis.com/drive/v3/files/${currentFileId}?fields=modifiedTime`);
+    if (meta.modifiedTime !== portfolioModified) { const e = new Error('다른 기기에서 먼저 저장함'); e.conflict = true; throw e; }
+  }
+  const body = JSON.stringify(extractPortfolio(DATA));
+  const res = await driveWrite(`https://www.googleapis.com/upload/drive/v3/files/${currentFileId}?uploadType=media&fields=id,modifiedTime`, body);
+  PORTFOLIO_RAW = JSON.parse(body);
+  portfolioModified = res.modifiedTime || portfolioModified;
+  return res;
+}
+// 로그인이 그새 끊겼으면 조용히 한 번 갱신해보고 재시도한다.
+async function driveWrite(url, body, retried){
+  const r = await fetch(url, {
     method: 'PATCH',
     headers: { Authorization: 'Bearer ' + accessToken, 'Content-Type': 'application/json' },
-    body: JSON.stringify(DATA)
+    body
   });
   if (r.status === 401 && !retried) {
     const refreshed = await silentRefresh();
-    if (refreshed) return driveSave(true);
+    if (refreshed) return driveWrite(url, body, true);
     throw new Error('로그인이 만료됐습니다. 다시 로그인해주세요.');
   }
   if (r.status === 403 && !retried) {
     // 예전에 읽기 전용으로만 로그인해뒀던 경우, 조용한 갱신으로는 쓰기 권한을
     // 못 받으므로 동의 화면을 직접 띄워 확실하게 새 권한을 받는다.
     const upgraded = await interactiveWriteConsent();
-    if (upgraded) return driveSave(true);
+    if (upgraded) return driveWrite(url, body, true);
     throw new Error('구글 드라이브 쓰기 권한이 필요합니다. 방금 뜬 동의 화면에서 허용해주세요.');
   }
   if (!r.ok) throw new Error('저장 실패 (' + r.status + ')');
@@ -505,24 +599,32 @@ async function loadPortfolio(){
   btn.classList.add('spin');
   document.getElementById('updatedAt').textContent = '불러오는 중…';
   try{
+    const narrowHint = NARROW_SCOPE
+      ? '<br><br>새 클라이언트 ID(파일 한정 권한)로 바꾼 뒤 이 메시지가 보이면, index.html 의 CLIENT_ID 를 예전 값으로 되돌려 주세요.'
+      : '';
     const fq = encodeURIComponent(`name='${FOLDER_NAME}' and mimeType='application/vnd.google-apps.folder' and trashed=false`);
-    const folderRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)`);
+    const folderRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${fq}&fields=files(id,name)&orderBy=createdTime`);
     const folder = (folderRes.files || [])[0];
     if (!folder) {
-      showEmpty('구글 드라이브에서 "Rebalancer" 폴더를 찾지 못했습니다.<br>PC에서 Update나 저장을 한 번 해주세요.');
+      showEmpty('구글 드라이브에서 "Rebalancer" 폴더를 찾지 못했습니다.<br>PC에서 Update나 저장을 한 번 해주세요.' + narrowHint);
       return;
     }
-    const ffq = encodeURIComponent(`name='${FILE_NAME}' and '${folder.id}' in parents and trashed=false`);
-    const fileRes = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${ffq}&fields=files(id,name,modifiedTime)`);
-    const file = (fileRes.files || [])[0];
+    folderId = folder.id;
+    const files = await listDataFiles();
+    const file = files[FILE_NAME];
     if (!file) {
-      showEmpty('폴더는 있지만 portfolio.json을 찾지 못했습니다.<br>PC에서 저장을 한 번 해주세요.');
+      showEmpty('폴더는 있지만 portfolio.json을 찾지 못했습니다.<br>PC에서 저장을 한 번 해주세요.' + narrowHint);
       return;
     }
-    DATA = await driveFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
+    PORTFOLIO_RAW = await driveFetch(`https://www.googleapis.com/drive/v3/files/${file.id}?alt=media`);
     currentFileId = file.id;
-    const d = new Date(file.modifiedTime);
-    document.getElementById('updatedAt').textContent = '마지막 저장 · ' + d.toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+    portfolioModified = file.modifiedTime;
+    const pf = files[PRICES_NAME];
+    PRICES_RAW = pf ? await driveFetch(`https://www.googleapis.com/drive/v3/files/${pf.id}?alt=media`) : null;
+    pricesFileId = pf ? pf.id : null;
+    pricesModified = pf ? pf.modifiedTime : null;
+    DATA = mergeView(PORTFOLIO_RAW, PRICES_RAW);
+    setUpdatedLabel();
     render();
   } catch(e){
     showError(e.message || String(e));
@@ -531,12 +633,83 @@ async function loadPortfolio(){
   }
 }
 
+// Rebalancer 폴더 안의 portfolio.json / prices.json 을 한 번에 조회 → {이름: {id, modifiedTime}}
+async function listDataFiles(){
+  const q = encodeURIComponent(`'${folderId}' in parents and trashed=false and (name='${FILE_NAME}' or name='${PRICES_NAME}')`);
+  const res = await driveFetch(`https://www.googleapis.com/drive/v3/files?q=${q}&fields=files(id,name,modifiedTime)&orderBy=modifiedTime desc`);
+  const out = {};
+  (res.files || []).forEach(f => { if (!out[f.name]) out[f.name] = f; });
+  return out;
+}
+const fmtShort = d => d.toLocaleString('ko-KR', { month:'numeric', day:'numeric', hour:'2-digit', minute:'2-digit' });
+function setUpdatedLabel(){
+  const el = document.getElementById('updatedAt');
+  if (!el) return;
+  const parts = [];
+  if (DATA && DATA.updatedAt) parts.push('시세 ' + fmtShort(new Date(DATA.updatedAt)));
+  if (portfolioModified) parts.push('저장 ' + fmtShort(new Date(portfolioModified)));
+  el.textContent = parts.join(' · ') || '-';
+  renderStale();
+}
+
+// ==== 자동 반영: 화면을 보고 있으면 1분마다 최신 시세·다른 기기 수정을 받아온다 (수정 모드 중엔 멈춤) ====
+let lastTouch = 0, liveBusy = false;
+['pointerdown','keydown'].forEach(ev => window.addEventListener(ev, () => { lastTouch = Date.now(); }, true));
+async function refreshLive(force){
+  if (!accessToken || !folderId || liveBusy || editMode || document.visibilityState !== 'visible') return;
+  if (document.getElementById('trendModal')) return;
+  if (!force && Date.now() - lastTouch < 20000) return;
+  liveBusy = true;
+  try {
+    const files = await listDataFiles();
+    let changed = false;
+    const pf = files[PRICES_NAME];
+    if (pf && pf.modifiedTime !== pricesModified) {
+      PRICES_RAW = await driveFetch(`https://www.googleapis.com/drive/v3/files/${pf.id}?alt=media`);
+      pricesFileId = pf.id; pricesModified = pf.modifiedTime; changed = true;
+    }
+    const f = files[FILE_NAME];
+    if (f && f.modifiedTime !== portfolioModified) {
+      PORTFOLIO_RAW = await driveFetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`);
+      currentFileId = f.id; portfolioModified = f.modifiedTime; changed = true;
+    }
+    if (changed && !editMode) { DATA = mergeView(PORTFOLIO_RAW, PRICES_RAW); render(); }
+    setUpdatedLabel();
+  } catch(e) { console.warn('자동 반영 실패', e); }
+  finally { liveBusy = false; }
+}
+setInterval(() => refreshLive(false), 60000);
+document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'visible') refreshLive(true); });
+
+// ==== 자동 업데이트 멈춤 경고 ====
+// 한국장(07:55~20:10) 또는 미국장(03:55~20:10 ET)이 열린 지 20분이 넘었는데 시세가 20분 넘게 그대로면 경고.
+function marketOpenAt(t){
+  const part = tz => { const o = {}; new Intl.DateTimeFormat('en-US', { timeZone: tz, weekday:'short', hour:'2-digit', minute:'2-digit', hourCycle:'h23' })
+    .formatToParts(t).forEach(p => o[p.type] = p.value); return { wd: o.weekday, m: (+o.hour)*60 + (+o.minute) }; };
+  const wk = d => d !== 'Sat' && d !== 'Sun';
+  const k = part('Asia/Seoul'); if (wk(k.wd) && k.m >= 475 && k.m <= 1210) return true;
+  const e = part('America/New_York'); if (wk(e.wd) && e.m >= 235 && e.m <= 1210) return true;
+  return false;
+}
+function renderStale(){
+  const el = document.getElementById('staleBanner');
+  if (!el || !DATA) return;
+  const now = new Date(), u = DATA.updatedAt ? new Date(DATA.updatedAt) : null;
+  const age = u ? Math.round((now - u) / 60000) : null;
+  if (marketOpenAt(now) && marketOpenAt(new Date(now - 20*60000)) && (age == null || age > 20)) {
+    el.textContent = '⚠ 자동 시세 업데이트가 ' + (age == null ? '아직 한 번도 되지 않았어요' : (age >= 120 ? Math.floor(age/60) + '시간' : age + '분') + '째 멈춰 있어요')
+      + '. PC에서 \'키 재인증\'이 필요할 수 있어요.';
+    el.style.display = 'block';
+  } else el.style.display = 'none';
+}
+setInterval(renderStale, 60000);
+
 function showEmpty(msg){
   document.getElementById('page-summary').innerHTML = `<div class="state-box"><div class="big">📭</div>${msg}</div>`;
   document.getElementById('page-accounts').innerHTML = '';
 }
 function showError(msg){
-  document.getElementById('page-summary').innerHTML = `<div class="err-box">${msg}</div>`;
+  document.getElementById('page-summary').innerHTML = `<div class="err-box">${esc(msg)}</div>`;
   document.getElementById('page-accounts').innerHTML = '';
 }
 
@@ -734,7 +907,7 @@ function showCashPopup(ai){
   const el = document.createElement('div'); el.id = 'trendModal'; el.className = 'modal-overlay';
   el.innerHTML = `<div class="modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <b style="font-size:14px">${acc.name} 예수금</b>
+      <b style="font-size:14px">${esc(acc.name)} 예수금</b>
       <span style="font-size:15px;color:var(--dim)" onclick="closeTrendModal()">✕</span>
     </div>
     <div class="thresh-row"><span>국장 예수금</span><span>${won(cashKRW)}원</span></div>
@@ -759,7 +932,7 @@ function showThresholdPopup(ai){
   const el = document.createElement('div'); el.id = 'trendModal'; el.className = 'modal-overlay';
   el.innerHTML = `<div class="modal-box">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px">
-      <b style="font-size:14px">${acc.name} 매매 기준</b>
+      <b style="font-size:14px">${esc(acc.name)} 매매 기준</b>
       <span style="font-size:15px;color:var(--dim)" onclick="closeTrendModal()">✕</span>
     </div>
     <div class="thresh-row csig-sell"><span>매도</span><span>괴리 ${p(sell)} 이상</span></div>
@@ -864,7 +1037,7 @@ function trendCell(sym, sig){
   const lvlClass = comp.level === 'none' ? 'none' : comp.level === 'watch' ? 'watch' : comp.level === 'sell' ? 'sell' : 'strong';
   return `<div class="trend-cell ${lvlClass}" onclick="showTrendHistoryPopup('${sym}')" style="cursor:pointer">
     <div class="sym">${sym}</div>
-    <div class="lbl">${comp.label}</div>
+    <div class="lbl">${esc(comp.label)}</div>
     <div class="score">${comp.score}/100</div>
   </div>`;
 }
@@ -884,7 +1057,7 @@ function renderTrendDetail(){
     const cls = locked ? 'locked' : (sell ? 'sell' : (s.state==='watch' ? 'watch' : ''));
     const txt = locked ? '잠금' : (sell ? '매도' : (s.state==='watch' ? '매도고려' : '-'));
     return `<div class="detail-cell ${cls}">
-      <div class="k">${label}</div><div class="v">${txt}</div><div class="d">${s.detail||''}</div>
+      <div class="k">${label}</div><div class="v">${txt}</div><div class="d">${esc(s.detail||'')}</div>
     </div>`;
   };
   const sel = `<select class="trend-sel" onchange="onTrendDetailSel(this.value)">
@@ -893,8 +1066,8 @@ function renderTrendDetail(){
   box.innerHTML = `${sel}<div class="detail-row">${order.map(cell).join('')}</div>`;
 }
 
-function toggleAcct(name){
-  openAccts[name] = !openAccts[name];
+function toggleAcct(id){
+  openAccts[id] = !openAccts[id];
   render();
 }
 
@@ -962,7 +1135,7 @@ function renderSummaryPage(){
           const lbl = r.sig ? r.sig.text : '-';
           const gapTxt = r.gap != null ? `${r.gap>=0?'+':''}${(r.gap*100).toFixed(1)}%` : '';
           return `<div class="acct-sig-cell ${cellCls}">
-            <div class="nm">${acc.name}</div>
+            <div class="nm">${esc(acc.name)}</div>
             <div class="lbl">${lbl}</div>
             ${gapTxt ? `<div class="gap">${gapTxt}</div>` : ''}
           </div>`;
@@ -1046,9 +1219,9 @@ function renderSummaryPage(){
       <div class="fold-body ${isFolded('sectorMgmt')?'hidden':''}">
         ${sectors.map(s => `
           <div class="ef-row">
-            <label style="width:auto;flex:1;color:var(--ink)">${s.name}</label>
-            <input class="ef-input" style="width:70px;flex:0 0 70px" value="${s.target!=null?s.target:0}" onchange="setSectorTargetMobile('${s.name.replace(/'/g,"\\'")}',this.value)">
-            <span class="ef-del" onclick="deleteSectorMobile('${s.name.replace(/'/g,"\\'")}')">✕</span>
+            <label style="width:auto;flex:1;color:var(--ink)">${esc(s.name)}</label>
+            <input class="ef-input" style="width:70px;flex:0 0 70px" value="${s.target!=null?s.target:0}" onchange="setSectorTargetMobile(${jsa(s.name)},this.value)">
+            <span class="ef-del" onclick="deleteSectorMobile(${jsa(s.name)})">✕</span>
           </div>`).join('')}
         <div style="display:flex;gap:6px;margin-top:6px">
           <input class="ef-input" id="newSectorName" placeholder="새 섹터명" style="flex:1">
@@ -1069,7 +1242,7 @@ function renderSummaryPage(){
 // ==== 수정 모드에서 쓰는 편집 함수들 (PC의 app.py index.html과 동일 로직) ====
 function setH(ai, hi, k, v){
   const h = DATA.accounts[ai].holdings[hi];
-  h[k] = (k === 'code' || k === 'name') ? v : (parseFloat(String(v).replace(/,/g,'')) || 0);
+  h[k] = k === 'code' ? String(v).trim().toUpperCase() : (k === 'name' ? v : (parseFloat(String(v).replace(/,/g,'')) || 0));
   render();
 }
 function delH(ai, hi){
@@ -1081,7 +1254,7 @@ function addH(ai){
   const mktEl = document.getElementById('mkt-' + ai);
   const codeEl = document.getElementById('code-' + ai);
   const mkt = mktEl.value;
-  const code = codeEl.value.trim();
+  const code = codeEl.value.trim().toUpperCase();
   if (!code) return;
   DATA.accounts[ai].holdings.push({ market: mkt, code, name: '', qty: 0, avgPrice: 0, price: 0 });
   codeEl.value = '';
@@ -1109,7 +1282,7 @@ function renameAccount(ai){
   render();
 }
 function addAccount(){
-  DATA.accounts.push({ name: '새 계좌', seed: 0, cashKRW: 0, cashUSD: 0, krOnly: false,
+  DATA.accounts.push({ id: newAccountId(), name: '새 계좌', seed: 0, cashKRW: 0, cashUSD: 0, krOnly: false,
     thresholds: { sell: 0.06, sellWatch: 0.03, buyWatch: -0.03, buy: -0.06 }, holdings: [] });
   render();
 }
@@ -1192,7 +1365,7 @@ function renderAccountsPage(){
   (DATA.accounts || []).forEach((acc, ai) => {
     const r = computeAccount(acc, fx, settings, market);
     grandTotal += r.total; grandProfit += r.profit;
-    const open = !!openAccts[acc.name];
+    const open = !!openAccts[acc.id];
 
     const holdingsHtml = editMode
       ? (r.rows.map(row => {
@@ -1201,11 +1374,11 @@ function renderAccountsPage(){
         <div class="ef-row" style="flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px">
           <div style="width:100%;display:flex;align-items:center;gap:6px">
             <span style="font-size:10px;color:var(--dim);width:28px">${row.isUS?'미장':'국장'}</span>
-            <input class="ef-input" style="flex:1" value="${h.code||''}" onchange="setH(${ai},${row.hi},'code',this.value)" placeholder="종목코드">
+            <input class="ef-input" style="flex:1" value="${esc(h.code||'')}" onchange="setH(${ai},${row.hi},'code',this.value)" placeholder="종목코드">
             <span class="ef-del" onclick="delH(${ai},${row.hi})">✕</span>
           </div>
           <div style="width:100%;display:flex;gap:6px;margin-top:5px">
-            <input class="ef-input" style="color:var(--dim)" value="${h.name||''}" readonly placeholder="종목명(자동 반영, 수정 불가)">
+            <input class="ef-input" style="color:var(--dim)" value="${esc(h.name||'')}" readonly placeholder="종목명(자동 반영, 수정 불가)">
           </div>
           <div style="width:100%;display:flex;align-items:center;gap:6px;margin-top:5px">
             <span style="font-size:11px;color:var(--dim);width:50px;flex-shrink:0">수량</span>
@@ -1235,7 +1408,7 @@ function renderAccountsPage(){
         <div class="h-row">
           ${logoImg(row, ai)}
           <div class="h-mid">
-            <div class="h-name">${row.name}</div>
+            <div class="h-name">${esc(row.name)}</div>
             <div class="h-sub">${row.qty}주 · ${priceStr}</div>
           </div>
           <div class="h-right">
@@ -1297,9 +1470,9 @@ function renderAccountsPage(){
     ` : '';
 
     html += `<div class="acct ${open ? 'open' : ''}">
-      <div class="acct-head" onclick="toggleAcct('${acc.name.replace(/'/g,"\\'")}')">
+      <div class="acct-head" onclick="toggleAcct(${jsa(acc.id)})">
         <div>
-          <div class="acct-name">${acc.name} ${sigBadge}</div>
+          <div class="acct-name">${esc(acc.name)} ${sigBadge}</div>
           <div class="acct-sub">보유 ${r.rows.length}종목</div>
           <div style="display:flex;gap:6px">
             <div class="thresh-btn" onclick="event.stopPropagation();showThresholdPopup(${ai})">매매 기준</div>
@@ -1346,11 +1519,11 @@ function renderAccountsPage(){
 function logoImg(row, ai){
   const letter = (row.name || row.code || '?').trim().charAt(0);
   const list = (row.logos && row.logos.length) ? row.logos : (row.logo ? [row.logo] : []);
-  if (!list.length) return `<span class="h-avatar">${letter}</span>`;
-  const json = JSON.stringify(list).replace(/"/g,'&quot;');
+  if (!list.length) return `<span class="h-avatar">${esc(letter)}</span>`;
+  const json = esc(JSON.stringify(list));
   const idAttrs = (ai != null && row.hi != null) ? `data-ai="${ai}" data-hi="${row.hi}"` : '';
   const clickAttr = (ai != null && row.hi != null) ? `onclick="logoCycle(this)" style="cursor:pointer"` : '';
-  return `<img class="h-logo" src="${list[0]}" data-cands="${json}" data-i="0" ${idAttrs} ${clickAttr} onerror="logoFallback(this)">`;
+  return `<img class="h-logo" src="${esc(list[0])}" data-cands="${json}" data-i="0" ${idAttrs} ${clickAttr} onerror="logoFallback(this)">`;
 }
 // 앰블럼을 탭하면 다음 후보로 순환한다. 다른 수정과 달리, 이 기능만 예외로
 // 수정 모드와 무관하게 클릭 즉시 조용히 구글 드라이브에 저장된다.
@@ -1367,12 +1540,26 @@ async function logoCycle(img){
   if (!h) return;
   // 고른 후보를 맨 앞으로 보내 다음부터도 이 로고가 먼저 시도되게 고정
   const chosen = list[i];
-  h.logos = [chosen, ...list.filter(u => u !== chosen)];
-  h.logo = chosen;
-  h.logoPinned = true;   // 사용자가 직접 고른 값이므로 이후 자동 재계산에서 제외
+  const accId = DATA.accounts[ai].id, key = qkey(h);
+  const pin = () => {
+    const acc = (DATA.accounts || []).find(a => a.id === accId);
+    const hh = acc && (acc.holdings || []).find(x => qkey(x) === key);
+    if (!hh) return false;
+    hh.logos = [chosen, ...list.filter(u => u !== chosen)];
+    hh.logo = chosen;
+    hh.logoPinned = true;   // 사용자가 직접 고른 값이므로 이후 자동 재계산에서 제외
+    return true;
+  };
+  pin();
+  if (editMode) return;   // 수정 모드 중이면 '저장' 때 함께 저장됨
   try {
-    await driveSave();
-    document.getElementById('updatedAt').textContent = '마지막 저장 · ' + new Date().toLocaleString('ko-KR',{month:'numeric',day:'numeric',hour:'2-digit',minute:'2-digit'});
+    try { await driveSave(); }
+    catch(e) {
+      if (!e.conflict) throw e;
+      await loadPortfolio();            // 다른 기기가 먼저 저장 → 최신을 받은 뒤 로고만 다시 적용
+      if (pin()) await driveSave();
+    }
+    setUpdatedLabel();
   } catch(e) {
     console.error('로고 선택 저장 실패:', e);
   }
@@ -1396,7 +1583,7 @@ function renderAllPies(){
   const fx = (DATA.market && DATA.market.usdKrw) || 0;
   const settings = DATA.settings || {}, market = DATA.market || {};
   (DATA.accounts || []).forEach((acc, ai) => {
-    if (!openAccts[acc.name]) return;
+    if (!openAccts[acc.id]) return;
     const cv = document.getElementById('pie-' + ai);
     if (!cv || !window.Chart) return;
     const r = computeAccount(acc, fx, settings, market);
@@ -1435,9 +1622,9 @@ function renderAllPies(){
       legendEl.innerHTML = r.rows.map((row, i) => {
         const color = colorByName[row.name];
         const isOff = excluded.has(row.name);
-        return `<div class="pie-legend-row ${isOff?'off':''}" onclick="togglePieExclude(${ai},'${row.name.replace(/'/g,"\\'")}')">
+        return `<div class="pie-legend-row ${isOff?'off':''}" onclick="togglePieExclude(${ai},${jsa(row.name)})">
           <span class="pie-legend-dot" style="background:${color}"></span>
-          <span class="pie-legend-name">${row.name}</span>
+          <span class="pie-legend-name">${esc(row.name)}</span>
         </div>`;
       }).join('');
     }
@@ -1512,9 +1699,8 @@ function fmtYYMMDD(dateStr){
 
 let pickedAccts = null;
 function ensurePickedAccts(){
-  if (pickedAccts) return;
-  pickedAccts = {};
-  (DATA.accounts || []).forEach(a => { pickedAccts[a.name] = true; });
+  if (!pickedAccts) pickedAccts = {};
+  (DATA.accounts || []).forEach(a => { if (pickedAccts[a.id] === undefined) pickedAccts[a.id] = true; });
 }
 function togglePickAcct(name){
   ensurePickedAccts();
@@ -1529,12 +1715,11 @@ function renderProfitChips(){
   ensurePickedAccts();
   const box = document.getElementById('profitChips');
   if (!box) return;
-  const names = (DATA.accounts || []).map(a => a.name);
-  box.innerHTML = names.map((name, i) => {
-    const on = !!pickedAccts[name];
+  box.innerHTML = (DATA.accounts || []).map((a, i) => {
+    const on = !!pickedAccts[a.id];
     const c = CHART_COLORS[i % CHART_COLORS.length];
     const style = on ? `background:${c};border-color:${c};color:#04101f` : '';
-    return `<div class="chip ${on?'active':''}" style="${style}" onclick="togglePickAcct('${name.replace(/'/g,"\\'")}')">${name}</div>`;
+    return `<div class="chip ${on?'active':''}" style="${style}" onclick="togglePickAcct(${jsa(a.id)})">${esc(a.name)}</div>`;
   }).join('');
 }
 
@@ -1578,11 +1763,11 @@ function renderCompareBox(){
   const r2 = (DATA.history || []).find(r => r.date === b);
   if (!r1 || !r2) { box.innerHTML = ''; return; }
   let total = 0;
-  const rows = (DATA.accounts || []).filter(acc => pickedAccts[acc.name]).map(acc => {
-    const v1 = r1.profits && r1.profits[acc.name], v2 = r2.profits && r2.profits[acc.name];
-    if (v1 == null || v2 == null) return `<div class="cmp-row"><span>${acc.name}</span><span>-</span></div>`;
+  const rows = (DATA.accounts || []).filter(acc => pickedAccts[acc.id]).map(acc => {
+    const v1 = profitOf(r1, acc), v2 = profitOf(r2, acc);
+    if (v1 == null || v2 == null) return `<div class="cmp-row"><span>${esc(acc.name)}</span><span>-</span></div>`;
     const d = v2 - v1; total += d;
-    return `<div class="cmp-row"><span>${acc.name}</span><span class="${d>=0?'up':'down'}">${d>=0?'+':''}${won(d)}원</span></div>`;
+    return `<div class="cmp-row"><span>${esc(acc.name)}</span><span class="${d>=0?'up':'down'}">${d>=0?'+':''}${won(d)}원</span></div>`;
   }).join('');
   box.innerHTML = `<div class="cmp-box">
     <div class="cmp-title"><span>${a} → ${b}</span><span class="cmp-clear" onclick="clearCompare()">✕ 해제</span></div>
@@ -1719,13 +1904,10 @@ function renderHistoryChart(){
 
   const datasets = (DATA.accounts || [])
     .map((acc, i) => ({ acc, i }))
-    .filter(({acc}) => pickedAccts[acc.name])
+    .filter(({acc}) => pickedAccts[acc.id])
     .map(({acc, i}) => {
       const color = CHART_COLORS[i % CHART_COLORS.length];
-      const data = history.map(r => ({
-        x: r.date,
-        y: (r.profits && r.profits[acc.name] != null) ? r.profits[acc.name] : null
-      }));
+      const data = history.map(r => ({ x: r.date, y: profitOf(r, acc) }));
       return { label: acc.name, data, borderColor: color, backgroundColor: color,
         tension: .25, pointRadius: 1, borderWidth: 1.3, spanGaps: true };
     });
@@ -1859,9 +2041,9 @@ function onSectorAcctSel(v){ sectorChartAcct = v; renderSectorChart(); }
 function renderSectorAcctSel(){
   const sel = document.getElementById('sectorAcctSel');
   if (!sel) return;
-  const names = (DATA.accounts || []).map(a => a.name);
-  if (!sectorChartAcct || !names.includes(sectorChartAcct)) sectorChartAcct = names[0] || null;
-  sel.innerHTML = names.map(n => `<option value="${n}" ${n===sectorChartAcct?'selected':''}>${n}</option>`).join('');
+  const accs = DATA.accounts || [];
+  if (!sectorChartAcct || !accs.some(a => a.id === sectorChartAcct)) sectorChartAcct = accs[0] ? accs[0].id : null;
+  sel.innerHTML = accs.map(a => `<option value="${esc(a.id)}" ${a.id===sectorChartAcct?'selected':''}>${esc(a.name)}</option>`).join('');
 }
 
 // PC 앱(renderSectorChart)과 동일한 로직:
@@ -1893,7 +2075,7 @@ function renderSectorChart(){
   const cv = document.getElementById('sectorChart');
   if (!cv || !window.Chart) return;
   const fx = (DATA.market && DATA.market.usdKrw) || 0;
-  const acc = (DATA.accounts || []).find(a => a.name === sectorChartAcct);
+  const acc = (DATA.accounts || []).find(a => a.id === sectorChartAcct);
   if (charts.sectorChart) { charts.sectorChart.destroy(); charts.sectorChart = null; }
   if (!acc) return;
 
