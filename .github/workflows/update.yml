@@ -2,22 +2,31 @@ name: 리밸런서 자동 시세 업데이트
 
 on:
   schedule:
-    # 깃허브 자체 예약은 지연이 심해서(수 시간까지 밀림) 백업 용도로만 둠.
-    # 실제 정확한 5분 간격 실행은 외부 cron-job.org가 워크플로우를 직접
-    # 트리거해서 처리한다.
+    # 깃허브 자체 예약은 지연이 심해서 백업 용도로만 둠.
+    # 실제 1분 간격 실행은 외부 cron-job.org 가 workflow_dispatch 로 깨운다.
     - cron: "*/5 * * * *"
-  workflow_dispatch: {}   # 외부 서비스(cron-job.org)가 이 트리거를 호출함
+  workflow_dispatch:
+    inputs:
+      force:
+        description: "장 마감 시간이어도 실행"
+        type: boolean
+        default: false
 
-# 새 실행이 시작되면 아직 안 끝난 이전 실행은 취소한다.
-# 간격을 짧게 잡아도(1~2분) 두 실행이 동시에 구글 드라이브에 쓰면서
-# 서로 덮어쓰는 꼬임이 생기지 않도록 하는 안전장치.
+# 실행이 겹치면 '진행 중인 실행은 끝까지 하고' 다음 실행은 하나만 대기시킨다.
+# (예전의 cancel-in-progress: true 는 실행이 1분을 넘으면 매번 취소돼 업데이트가 멈출 수 있었음)
 concurrency:
   group: rebalancer-update
-  cancel-in-progress: true
+  cancel-in-progress: false
+
+permissions:
+  contents: read
 
 jobs:
   update:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    env:
+      TZ: Asia/Seoul
     steps:
       - name: 저장소 코드 가져오기
         uses: actions/checkout@v4
@@ -32,4 +41,5 @@ jobs:
           GOOGLE_CLIENT_ID: ${{ secrets.GOOGLE_CLIENT_ID }}
           GOOGLE_CLIENT_SECRET: ${{ secrets.GOOGLE_CLIENT_SECRET }}
           GOOGLE_REFRESH_TOKEN: ${{ secrets.GOOGLE_REFRESH_TOKEN }}
+          FORCE_RUN: ${{ github.event.inputs.force }}
         run: python cloud_update.py
