@@ -75,6 +75,62 @@
 
   .state-box{margin:60px 16px;text-align:center;color:var(--dim);font-size:13px;line-height:1.7}
 
+
+  /* ===== 수정 시트 (아래에서 올라오는 입력창) ===== */
+  .sheet-ov{position:fixed;inset:0;background:rgba(0,0,0,.55);z-index:150;display:flex;align-items:flex-end;justify-content:center}
+  .sheet{background:var(--panel);border:1px solid var(--line);border-bottom:0;border-radius:18px 18px 0 0;width:100%;max-width:520px;
+    max-height:92vh;display:flex;flex-direction:column;animation:sheetUp .18s ease-out}
+  @keyframes sheetUp{from{transform:translateY(36px);opacity:.4}to{transform:none;opacity:1}}
+  .sheet-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px 4px;gap:10px}
+  .sheet-title{font-weight:700;font-size:15px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sheet-x{color:var(--dim);font-size:18px;padding:4px 8px;cursor:pointer}
+  .sheet-body{padding:2px 16px 12px;overflow-y:auto;-webkit-overflow-scrolling:touch}
+  .sheet-foot{padding:10px 16px calc(12px + env(safe-area-inset-bottom));border-top:1px solid var(--line);display:flex;gap:8px}
+  .sh-sub{font-size:12px;color:var(--dim);margin-bottom:6px}
+  .sh-field{margin:12px 0}
+  .sh-field>label{display:block;font-size:11px;color:var(--dim);margin-bottom:5px}
+  .sh-in{display:flex;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:10px;padding:0 12px}
+  .sh-in:focus-within{border-color:var(--accent)}
+  .sh-in{min-width:0}
+  .sh-in input{flex:1;min-width:0;width:100%;background:none;border:0;color:var(--ink);font:inherit;font-size:18px;padding:12px 0;outline:none}
+  .sh-in .u{color:var(--dim);font-size:13px;margin-left:6px;flex-shrink:0}
+  .sh-in .p{color:var(--dim);font-size:15px;margin-right:6px}
+  .sh-in.bad{border-color:var(--up)}
+  .sh-err{color:var(--up);font-size:11.5px;margin-top:4px;min-height:0}
+  .sh-btn{flex:1;padding:13px;border-radius:10px;border:0;font:inherit;font-weight:700;font-size:14px;cursor:pointer;color:var(--ink)}
+  .sh-btn.pri{background:var(--accent);color:#04101f}
+  .sh-btn.pri:disabled{opacity:.35}
+  .sh-btn.sec{background:var(--panel2);flex:0 0 30%}
+  .sh-pv{background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px 12px;margin:12px 0;font-size:12.5px}
+  .sh-pv .r{display:grid;grid-template-columns:62px 1fr 14px 1fr;gap:4px;padding:4px 0;align-items:baseline}
+  .sh-pv .r .k{color:var(--dim)} .sh-pv .r .a{text-align:right;color:var(--muted)} .sh-pv .r .b{text-align:right;font-weight:700}
+  .sh-pv .r .ar{color:var(--dim);text-align:center}
+  .sh-more{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-top:16px;padding-top:12px;border-top:1px dashed var(--line);font-size:12px;color:var(--dim)}
+  .sh-more select{background:var(--bg);color:var(--ink);border:1px solid var(--line);border-radius:8px;padding:6px 8px;font:inherit;font-size:12px;max-width:55%}
+  .sh-link{color:var(--dim);font-size:12px;text-decoration:underline;cursor:pointer}
+  .sh-link.danger{color:var(--up)}
+  .sh-sec{font-size:12px;font-weight:700;color:var(--muted);margin:18px 0 4px}
+  .sh-chips{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0 2px}
+  .sh-chip{font-size:12px;padding:6px 10px;border-radius:999px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);cursor:pointer}
+  .sh-seg{display:flex;gap:6px}
+  .sh-seg div{flex:1;text-align:center;padding:9px 0;border-radius:9px;border:1px solid var(--line);color:var(--dim);font-size:13px;cursor:pointer}
+  .sh-seg div.on{background:var(--panel2);border-color:var(--accent);color:var(--ink);font-weight:700}
+  .sh-step{display:flex;align-items:center;gap:6px}
+  .sh-step button{width:34px;height:44px;border-radius:10px;border:1px solid var(--line);background:var(--panel2);color:var(--ink);font-size:20px;cursor:pointer;flex-shrink:0}
+  .sh-step .sh-in{flex:1}
+  .sh-row2{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}
+  .sh-row2>*{min-width:0}
+  .sh-step{min-width:0}
+  .sh-srow{display:flex;align-items:center;gap:8px;margin:6px 0}
+  .sh-srow .n{flex:1;font-size:13px;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .sh-srow .sh-in{flex:0 0 96px} .sh-srow .sh-in input{font-size:15px;padding:8px 0}
+  .sh-check{display:flex;align-items:center;gap:8px;font-size:13px;margin:14px 0 4px}
+  .sh-check input{width:20px;height:20px}
+  .h-row{cursor:pointer}
+  .toast{white-space:nowrap;position:fixed;left:50%;transform:translateX(-50%);bottom:calc(22px + env(safe-area-inset-bottom));background:#1d2636;border:1px solid var(--line);
+    border-radius:12px;padding:10px 14px;z-index:300;display:flex;gap:14px;align-items:center;font-size:13px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+  .toast button{background:none;border:0;color:var(--accent);font:inherit;font-weight:700;cursor:pointer;padding:2px 4px}
+
   .modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
     display:flex;align-items:center;justify-content:center;padding:16px}
   .modal-box{background:var(--panel);border:1px solid var(--line);border-radius:14px;
@@ -277,7 +333,7 @@
 
 <div id="loginScreen" class="wrap">
   <div class="brand-text">Rebalancer</div>
-  <p>PC 리밸런서와 같은 구글 드라이브 데이터를<br>확인하고, 수정 모드에서 고칠 수 있습니다.</p>
+  <p>PC 리밸런서와 같은 구글 드라이브 데이터를<br>확인하고, 종목·계좌를 눌러 고칠 수 있습니다.</p>
   <div id="autoChecking" class="auto-checking">
     <div class="spinner"></div>
     <div>로그인 확인 중…</div>
@@ -287,7 +343,7 @@
       <svg width="16" height="16" viewBox="0 0 48 48"><path fill="#4285F4" d="M45.1 24.5c0-1.6-.1-3.1-.4-4.6H24v9.1h11.9c-.5 2.8-2.1 5.1-4.4 6.7v5.6h7.1c4.2-3.8 6.5-9.5 6.5-16.8z"/><path fill="#34A853" d="M24 46c5.9 0 10.9-2 14.5-5.3l-7.1-5.6c-2 1.3-4.5 2.1-7.4 2.1-5.7 0-10.5-3.8-12.2-9H4.5v5.7C8.1 40.9 15.4 46 24 46z"/><path fill="#FBBC05" d="M11.8 27.2c-.4-1.3-.7-2.7-.7-4.2s.2-2.9.7-4.2v-5.7H4.5C3 16 2 19.9 2 24s1 8 4.5 10.9l7.3-5.7z"/><path fill="#EA4335" d="M24 10.7c3.2 0 6.1 1.1 8.4 3.3l6.3-6.3C34.9 4.2 29.9 2 24 2 15.4 2 8.1 7.1 4.5 13.1l7.3 5.7c1.7-5.2 6.5-9 12.2-9.1z"/></svg>
       구글로 로그인
     </button>
-    <div class="scope-note">수정 모드에서 저장할 때만 구글 드라이브에 씁니다. 평소에는 읽기만 합니다.</div>
+    <div class="scope-note">저장 버튼을 누를 때만 구글 드라이브에 씁니다. 평소에는 읽기만 합니다.</div>
   </div>
 </div>
 
@@ -298,13 +354,8 @@
       <div class="sub" id="updatedAt">불러오는 중…</div>
     </div>
     <div style="display:flex;align-items:center;gap:8px">
-      <div id="editModeBar" style="display:none;align-items:center;gap:6px">
-        <div class="icon-btn" onclick="saveEditMode()" id="saveEditBtn" title="저장">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2Z"/><path d="M17 21v-8H7v8M7 3v5h8"/></svg>
-        </div>
-      </div>
-      <div class="icon-btn" id="editBtn" onclick="toggleEditMode()" title="수정">
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>
+      <div class="icon-btn" id="editBtn" onclick="openSettingsSheet()" title="설정">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 6h9M17 6h3M4 12h3M11 12h9M4 18h11M19 18h1"/><circle cx="15" cy="6" r="2"/><circle cx="9" cy="12" r="2"/><circle cx="17" cy="18" r="2"/></svg>
       </div>
       <div class="icon-btn" id="refreshBtn" onclick="loadPortfolio()" title="새로고침">
         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>
@@ -405,54 +456,381 @@ let currentFileId = null;
 let openAccts = {};
 let charts = {};
 let activeTab = 'summary';
-let editMode = false;
-let editBackup = null;
 
-function toggleEditMode(){
-  if (editMode) { cancelEditMode(); return; }   // 이미 켜져 있으면 이 버튼이 취소 역할
-  editMode = true;
-  editBackup = JSON.parse(JSON.stringify(DATA));   // 취소 시 되돌릴 원본
-  (DATA.accounts || []).forEach(acc => { openAccts[acc.id] = false; });   // 기본은 접힌 상태로 시작
-  document.getElementById('editBtn').classList.add('editing');
-  document.getElementById('editModeBar').style.display = 'flex';
-  render();
+// =====================================================================
+//  수정: 종목·계좌를 누르면 아래에서 올라오는 작은 창에서 그것만 고치고,
+//  저장할 때 "Drive 의 최신 portfolio.json" 위에 바뀐 부분만 얹어서 저장한다.
+//  (그 사이 PC 에서 고친 다른 내용이 있어도 덮어쓰지 않고 함께 남는다)
+// =====================================================================
+let SH = null, _toastTimer = null, _undoFn = null;
+const $id = id => document.getElementById(id);
+const findAcc = (d, id) => (d.accounts || []).find(a => a.id === id);
+const findH = (a, key) => (a.holdings || []).find(h => qkey(h) === key);
+const clone = o => JSON.parse(JSON.stringify(o));
+
+function fnum(s){                       // '1,234.5' → 1234.5 / 빈칸·잘못된 입력 → NaN
+  const t = String(s == null ? '' : s).replace(/,/g, '').trim();
+  if (!/^\d*\.?\d*$/.test(t) || t === '' || t === '.') return NaN;
+  return parseFloat(t);
 }
-function cancelEditMode(){
-  if (!editBackup) { exitEditModeUI(); return; }
-  DATA = editBackup;
-  editBackup = null;
-  exitEditModeUI();
-  render();
+function groupNum(s){                   // 입력하는 동안 쉼표 자동
+  s = String(s).replace(/[^\d.]/g, '');
+  const i = s.indexOf('.');
+  let a = i < 0 ? s : s.slice(0, i);
+  const b = i < 0 ? '' : s.slice(i + 1).replace(/\./g, '');
+  a = a.replace(/^0+(?=\d)/, '').replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+  return i < 0 ? a : a + '.' + b;
 }
-async function saveEditMode(){
-  const btn = document.getElementById('saveEditBtn');
-  btn.classList.add('spin');
-  try {
-    try {
-      await driveSave();
-    } catch(e) {
-      if (!e.conflict) throw e;
-      // 수정하는 사이에 PC 등 다른 기기에서 먼저 저장한 경우
-      const overwrite = confirm('수정하는 사이에 다른 기기(PC 등)에서 먼저 저장한 내용이 있어요.\n\n'
-        + '[확인] 지금 내 수정 내용으로 덮어쓰기\n[취소] 저장하지 않고 최신 내용 다시 불러오기');
-      if (!overwrite) { editBackup = null; exitEditModeUI(); await loadPortfolio(); return; }
-      await driveSave({ overwrite: true });
-    }
-    editBackup = null;
-    exitEditModeUI();
-    setUpdatedLabel();
-    render();
-  } catch(e) {
-    btn.classList.remove('spin');
-    alert('저장 실패: ' + (e.message || String(e)) + '\n입력하신 내용은 그대로 남아있으니, 다시 눌러 재시도해주세요.');
+const numStr = n => (n == null || isNaN(n)) ? '' : groupNum(String(n));
+const r4 = x => Math.round(x * 10000) / 10000;
+
+// ---- Drive 최신본 위에 변경만 얹어 저장 ----
+async function commit(mut){
+  for (let n = 0; n < 3; n++) {
+    const files = await listDataFiles();
+    const f = files[FILE_NAME];
+    if (!f) throw new Error('portfolio.json 을 찾지 못했습니다');
+    const raw = await driveFetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`);
+    currentFileId = f.id; portfolioModified = f.modifiedTime; PORTFOLIO_RAW = raw;
+    const base = mergeView(raw, PRICES_RAW);
+    mut(base);                           // 대상이 없으면 여기서 오류
+    const prev = DATA; DATA = base;
+    try { await driveSave(); setUpdatedLabel(); render(); return; }
+    catch(e) { DATA = prev; if (!e.conflict) throw e; }   // 그 사이 또 바뀌었으면 최신본으로 한 번 더
   }
+  throw new Error('다른 기기에서 계속 저장 중입니다. 잠시 뒤 다시 시도해주세요.');
 }
-function exitEditModeUI(){
-  editMode = false;
-  document.getElementById('editBtn').classList.remove('editing');
-  document.getElementById('editModeBar').style.display = 'none';
-  const btn = document.getElementById('saveEditBtn');
-  btn.classList.remove('spin');
+
+// ---- 시트 틀 ----
+function openSheet(st){
+  closeSheetNow();
+  const _t = $id('toast'); if (_t) { _t.remove(); clearTimeout(_toastTimer); }
+  SH = st; st.init = JSON.stringify(st.v);
+  const ov = document.createElement('div');
+  ov.id = 'sheet'; ov.className = 'sheet-ov';
+  ov.addEventListener('click', e => { if (e.target === ov) shClose(); });
+  ov.innerHTML = `<div class="sheet" role="dialog">
+    <div class="sheet-head"><div class="sheet-title">${st.title}</div><div class="sheet-x" onclick="shClose()">✕</div></div>
+    <div class="sheet-body" id="shBody">${st.body()}</div>
+    <div class="sheet-foot">${st.foot ? st.foot() : `<button class="sh-btn sec" onclick="shClose()">닫기</button><button class="sh-btn pri" id="shSave" onclick="shSave()">저장</button>`}</div>
+  </div>`;
+  document.body.appendChild(ov);
+  st.upd && st.upd();
+}
+function closeSheetNow(){ const s = $id('sheet'); if (s) s.remove(); SH = null; }
+function shDirty(){ return !!SH && JSON.stringify(SH.v) !== SH.init; }
+function shClose(){
+  if (!SH || SH.busy) return;
+  if (shDirty() && !confirm('저장하지 않고 닫을까요?')) return;
+  closeSheetNow();
+}
+function shBusy(b){
+  const btn = $id('shSave'); if (!btn) return;
+  btn.disabled = b; btn.textContent = b ? '저장 중…' : '저장';
+}
+async function shRun(r){                // r = {mut, undo, msg}
+  const st = SH; if (!st || st.busy) return;
+  st.busy = true; shBusy(true);
+  try { await commit(r.mut); closeSheetNow(); toast(r.msg, r.undo); }
+  catch(e) { st.busy = false; shBusy(false); alert('저장 실패: ' + (e.message || String(e)) + '\n입력한 내용은 그대로 있으니 다시 눌러 재시도해주세요.'); if (st.upd) st.upd(); }
+}
+function shSave(){
+  if (!SH || SH.busy) return;
+  if (!shDirty()) { closeSheetNow(); return; }
+  const r = SH.collect(); if (!r) return;
+  if (r.warn) { _pendingWeightConfirm = () => shRun(r); showWeightWarningModal(); return; }
+  shRun(r);
+}
+function shIn(el, k){                    // 숫자 칸 입력
+  el.value = groupNum(el.value); SH.v[k] = el.value; SH.upd();
+}
+function shPick(k, val){ SH.v[k] = val; SH.upd(); }
+
+function toast(msg, undoMut){
+  clearTimeout(_toastTimer);
+  const old = $id('toast'); if (old) old.remove();
+  const t = document.createElement('div'); t.id = 'toast'; t.className = 'toast';
+  t.innerHTML = `<span>${esc(msg)}</span>` + (undoMut ? `<button onclick="doUndo()">되돌리기</button>` : '');
+  document.body.appendChild(t);
+  _undoFn = undoMut || null;
+  _toastTimer = setTimeout(() => { t.remove(); _undoFn = null; }, 8000);
+}
+async function doUndo(){
+  const u = _undoFn; _undoFn = null;
+  const t = $id('toast'); if (t) t.remove();
+  if (!u) return;
+  try { await commit(u); toast('되돌렸어요'); }
+  catch(e) { alert('되돌리기 실패: ' + (e.message || String(e))); }
+}
+
+// ---- 종목 창 : 남은 수량 + 평단가 ----
+function openItemSheet(accId, hi){
+  const acc = findAcc(DATA, accId), h = acc && acc.holdings[hi]; if (!h) return;
+  const key = qkey(h), isUS = h.market === 'US';
+  const fx = (DATA.market && DATA.market.usdKrw) || 0, price = +h.price || 0;
+  const old = { qty: h.qty || 0, avg: h.avgPrice || 0, sector: h.sector || '' };
+  const hcopy = clone(h), idx = hi;
+  const sectors = (DATA.sectors || []).map(x => x.name);
+  const fq = n => groupNum(String(n)) + '주';
+  const fa = n => isUS ? '$' + numUS(n) : won(n) + '원';
+  const val = q => q * price * (isUS ? fx : 1);
+  const rate = a => (a > 0 && price > 0) ? price / a - 1 : null;
+  const cls = r => r == null ? '' : (r >= 0 ? 'up' : 'down');
+  const target = d => { const A = findAcc(d, accId), H = A && findH(A, key); if (!H) throw new Error('다른 기기에서 이미 지워진 종목이에요'); return [A, H]; };
+  openSheet({
+    title: esc(h.name || h.code), v: { qty: numStr(old.qty), avg: numStr(old.avg), sector: old.sector },
+    body(){ return `
+      <div class="sh-sub">${isUS ? '미장' : '국장'} · ${esc(h.code)} · ${esc(acc.name)}</div>
+      <div class="sh-field"><label>남은 수량</label>
+        <div class="sh-in" id="shQ"><input inputmode="decimal" autocomplete="off" value="${esc(this.v.qty)}" oninput="shIn(this,'qty')"><span class="u">주</span></div></div>
+      <div class="sh-field"><label>평단가</label>
+        <div class="sh-in" id="shA"><input inputmode="decimal" autocomplete="off" value="${esc(this.v.avg)}" oninput="shIn(this,'avg')"><span class="u">${isUS ? '$' : '원'}</span></div>
+        <div class="sh-err" id="shErr"></div></div>
+      <div class="sh-pv" id="shPv"></div>
+      <div class="sh-more">
+        <span>섹터 <select onchange="shPick('sector',this.value)"><option value="">미지정</option>${sectors.map(n => `<option value="${esc(n)}" ${n === this.v.sector ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></span>
+        <span class="sh-link danger" onclick="shDel()">종목 삭제</span>
+      </div>`; },
+    upd(){
+      const q = fnum(this.v.qty), a = fnum(this.v.avg);
+      const qOk = !isNaN(q), aOk = !isNaN(a) && (a > 0 || q === 0);
+      $id('shQ').classList.toggle('bad', !qOk); $id('shA').classList.toggle('bad', !aOk);
+      $id('shErr').textContent = !qOk ? '수량을 숫자로 입력해 주세요' : (!aOk ? '평단가를 숫자로 입력해 주세요' : '');
+      const q2 = qOk ? q : old.qty, a2 = aOk ? a : old.avg;
+      const r0 = rate(old.avg), r1 = rate(a2);
+      $id('shPv').innerHTML = `
+        <div class="r"><span class="k">수량</span><span class="a">${fq(old.qty)}</span><span class="ar">→</span><span class="b">${fq(q2)}</span></div>
+        <div class="r"><span class="k">평단가</span><span class="a">${fa(old.avg)}</span><span class="ar">→</span><span class="b">${fa(a2)}</span></div>
+        <div class="r"><span class="k">평가금액</span><span class="a">${won(val(old.qty))}원</span><span class="ar">→</span><span class="b">${won(val(q2))}원</span></div>
+        <div class="r"><span class="k">수익률</span><span class="a ${cls(r0)}">${pct(r0)}</span><span class="ar">→</span><span class="b ${cls(r1)}">${pct(r1)}</span></div>`;
+      $id('shSave').disabled = !(qOk && aOk) || !!this.busy;
+    },
+    collect(){
+      const q = fnum(this.v.qty), a = fnum(this.v.avg), sec = this.v.sector;
+      if (isNaN(q) || isNaN(a)) return null;
+      return { msg: '저장했어요',
+        mut: d => { const H = target(d)[1]; H.qty = q; H.avgPrice = a; if (sec || 'sector' in H) H.sector = sec; },
+        undo: d => { const H = target(d)[1]; H.qty = old.qty; H.avgPrice = old.avg; if (old.sector || 'sector' in H) H.sector = old.sector; } };
+    },
+    del(){
+      return { msg: '종목을 삭제했어요',
+        mut: d => { const [A, H] = target(d); A.holdings.splice(A.holdings.indexOf(H), 1); },
+        undo: d => { const A = findAcc(d, accId); if (!A) throw new Error('계좌가 없어졌어요'); A.holdings.splice(Math.min(idx, A.holdings.length), 0, clone(hcopy)); } };
+    }
+  });
+}
+function shDel(){
+  if (!SH || !SH.del || SH.busy) return;
+  const isAcct = SH.title.indexOf('계좌 설정') >= 0;
+  if (!confirm(isAcct ? '이 계좌를 삭제할까요?\n이 계좌의 종목·설정이 모두 사라집니다.' : '이 종목을 삭제할까요?')) return;
+  shRun(SH.del());
+}
+
+// ---- 종목 추가 ----
+function detectMarket(code){ return /^\d[0-9A-Z]{5}$/.test(code) ? 'KR' : 'US'; }
+function openAddSheet(accId){
+  const acc = findAcc(DATA, accId); if (!acc) return;
+  const have = new Set((acc.holdings || []).map(qkey));
+  const others = []; const seen = new Set();
+  (DATA.accounts || []).forEach(a => { if (a.id === accId) return; (a.holdings || []).forEach(h => {
+    const k = qkey(h); if (have.has(k) || seen.has(k)) return; seen.add(k);
+    others.push({ market: h.market, code: h.code, name: h.name || '', sector: h.sector || '' }); }); });
+  const sectors = (DATA.sectors || []).map(x => x.name);
+  openSheet({
+    title: esc(acc.name) + ' · 종목 추가', v: { code: '', market: 'KR', auto: true, qty: '', avg: '', sector: '' }, name: '',
+    body(){ return `
+      ${others.length ? `<div class="sh-field"><label>다른 계좌에 있는 종목 (누르면 채워져요)</label><div class="sh-chips">${
+        others.map((o, i) => `<span class="sh-chip" onclick="shAddPick(${i})">${esc(o.name || o.code)}</span>`).join('')}</div></div>` : ''}
+      <div class="sh-field"><label>종목코드</label>
+        <div class="sh-in" id="shC"><input id="shCode" autocapitalize="characters" autocomplete="off" placeholder="예 005930 / NVDA" value="${esc(this.v.code)}" oninput="shAddCode(this)"></div>
+        <div class="sh-err" id="shErr"></div></div>
+      <div class="sh-seg" id="shSeg"><div id="shMK" onclick="shAddMkt('KR')">국장</div><div id="shMU" onclick="shAddMkt('US')">미장</div></div>
+      <div class="sh-row2">
+        <div class="sh-field"><label>수량</label><div class="sh-in" id="shQ"><input inputmode="decimal" autocomplete="off" value="${esc(this.v.qty)}" oninput="shIn(this,'qty')"><span class="u">주</span></div></div>
+        <div class="sh-field"><label>평단가</label><div class="sh-in" id="shA"><input inputmode="decimal" autocomplete="off" value="${esc(this.v.avg)}" oninput="shIn(this,'avg')"><span class="u" id="shAu">원</span></div></div>
+      </div>
+      <div class="sh-more"><span>섹터 <select onchange="shPick('sector',this.value)"><option value="">미지정</option>${sectors.map(n => `<option value="${esc(n)}" ${n === this.v.sector ? 'selected' : ''}>${esc(n)}</option>`).join('')}</select></span>
+        <span style="font-size:11px">시세는 몇 분 안에 자동으로 채워져요</span></div>`; },
+    upd(){
+      const v = this.v, q = fnum(v.qty), a = fnum(v.avg);
+      const code = v.code.trim().toUpperCase();
+      const dup = code && have.has(v.market + ':' + code);
+      const codeOk = /^[0-9A-Z.\-]{1,12}$/.test(code) && !dup;
+      const qOk = !isNaN(q), aOk = !isNaN(a) && (a > 0 || q === 0);
+      $id('shC').classList.toggle('bad', !!v.code && !codeOk);
+      $id('shErr').textContent = dup ? '이 계좌에 이미 있는 종목이에요' : (v.code && !codeOk ? '종목코드를 확인해 주세요' : '');
+      $id('shQ').classList.toggle('bad', v.qty !== '' && !qOk);
+      $id('shA').classList.toggle('bad', v.avg !== '' && !aOk);
+      $id('shMK').classList.toggle('on', v.market === 'KR'); $id('shMU').classList.toggle('on', v.market === 'US');
+      $id('shAu').textContent = v.market === 'US' ? '$' : '원';
+      $id('shSave').disabled = !(codeOk && qOk && aOk) || !!this.busy;
+    },
+    collect(){
+      const v = this.v, q = fnum(v.qty), a = fnum(v.avg), code = v.code.trim().toUpperCase(), market = v.market, sec = v.sector, nm = this.name;
+      if (!code || isNaN(q) || isNaN(a)) return null;
+      const key = market + ':' + code;
+      return { msg: '종목을 추가했어요',
+        mut: d => { const A = findAcc(d, accId); if (!A) throw new Error('계좌가 없어졌어요');
+          if (A.holdings.some(h => qkey(h) === key)) throw new Error('이미 같은 종목이 있어요');
+          const h = { market, code, name: nm, qty: q, avgPrice: a }; if (sec) h.sector = sec; A.holdings.push(h); },
+        undo: d => { const A = findAcc(d, accId); if (!A) return; const i = A.holdings.findIndex(h => qkey(h) === key); if (i >= 0) A.holdings.splice(i, 1); } };
+    },
+    others
+  });
+}
+function shAddCode(el){
+  el.value = el.value.toUpperCase().replace(/[^0-9A-Z.\-]/g, '');
+  SH.v.code = el.value; SH.name = '';
+  if (SH.v.auto) SH.v.market = detectMarket(el.value);
+  SH.upd();
+}
+function shAddMkt(m){ SH.v.market = m; SH.v.auto = false; SH.upd(); }
+function shAddPick(i){
+  const o = SH.others[i]; if (!o) return;
+  SH.v.code = o.code; SH.v.market = o.market; SH.v.auto = false; SH.v.sector = o.sector; SH.name = o.name;
+  $id('shBody').innerHTML = SH.body(); SH.upd();
+}
+
+// ---- 계좌 설정 ----
+const TH_DEF = { sell: 6, sellWatch: 3, buyWatch: 3, buy: 6 };   // 화면에서는 모두 양수(하락은 − 로 표시)
+function openAcctSheet(accId){
+  const acc = findAcc(DATA, accId); if (!acc) return;
+  const ai = DATA.accounts.indexOf(acc);
+  const th = acc.thresholds || {};
+  const P = (k, sign) => th[k] != null ? r4(Math.abs(th[k]) * 100) : TH_DEF[k];
+  const snap = { name: acc.name, seed: acc.seed || 0, cashKRW: acc.cashKRW || 0, cashUSD: acc.cashUSD || 0, krOnly: !!acc.krOnly, thresholds: clone(acc.thresholds || {}) };
+  const acopy = clone(extractPortfolio({ accounts: [acc] }).accounts[0]);
+  function field(label, k, unit){ return `<div class="sh-field"><label>${label}</label><div class="sh-in" id="shF_${k}"><input inputmode="decimal" autocomplete="off" value="${esc(this.v[k])}" oninput="shIn(this,'${k}')"><span class="u">${unit}</span></div></div>`; }
+  function step(label, k, minus){ return `<div class="sh-field"><label>${label}</label><div class="sh-step">
+      <button type="button" onclick="shStep('${k}',-0.5)">−</button>
+      <div class="sh-in" id="shF_${k}">${minus ? '<span class="p">−</span>' : '<span class="p">+</span>'}<input id="shI_${k}" inputmode="decimal" autocomplete="off" value="${esc(this.v[k])}" oninput="shIn(this,'${k}')"><span class="u">%</span></div>
+      <button type="button" onclick="shStep('${k}',0.5)">＋</button></div></div>`; }
+  const target = d => { const A = findAcc(d, accId); if (!A) throw new Error('다른 기기에서 이미 지워진 계좌예요'); return A; };
+  openSheet({
+    title: esc(acc.name) + ' · 계좌 설정',
+    v: { name: acc.name, seed: numStr(snap.seed), cashKRW: numStr(snap.cashKRW), cashUSD: numStr(snap.cashUSD), krOnly: snap.krOnly,
+         sell: String(P('sell')), sellWatch: String(P('sellWatch')), buyWatch: String(P('buyWatch')), buy: String(P('buy')) },
+    body(){ return `
+      <div class="sh-field"><label>계좌 이름</label><div class="sh-in" id="shF_name"><input autocomplete="off" value="${esc(this.v.name)}" oninput="SH.v.name=this.value;SH.upd()"></div></div>
+      ${field.call(this, '시드 (원)', 'seed', '원')}
+      <div class="sh-row2">${field.call(this, '예수금 ₩', 'cashKRW', '원')}${field.call(this, '예수금 $', 'cashUSD', '$')}</div>
+      <label class="sh-check"><input type="checkbox" ${this.v.krOnly ? 'checked' : ''} onchange="SH.v.krOnly=this.checked;SH.upd()"> 국장 전용 계좌</label>
+      <div class="sh-sec">매매 기준 (0.5%p씩 조절)</div>
+      <div class="sh-row2">${step.call(this, '매도', 'sell', false)}${step.call(this, '매도 고려', 'sellWatch', false)}</div>
+      <div class="sh-row2">${step.call(this, '매수 고려', 'buyWatch', true)}${step.call(this, '매수', 'buy', true)}</div>
+      <div class="sh-err" id="shErr"></div>
+      <div class="sh-more"><span></span><span class="sh-link danger" onclick="shDel()">계좌 삭제</span></div>`; },
+    upd(){
+      const v = this.v, num = k => fnum(v[k]);
+      const bad = {};
+      ['seed', 'cashKRW', 'cashUSD', 'sell', 'sellWatch', 'buyWatch', 'buy'].forEach(k => { bad[k] = isNaN(num(k)); });
+      bad.name = !v.name.trim();
+      let msg = '';
+      if (!bad.sell && !bad.sellWatch && num('sellWatch') > num('sell')) { bad.sell = bad.sellWatch = true; msg = '매도 기준은 매도 고려 기준보다 크거나 같아야 해요'; }
+      if (!bad.buy && !bad.buyWatch && num('buyWatch') > num('buy')) { bad.buy = bad.buyWatch = true; msg = '매수 기준은 매수 고려 기준보다 크거나 같아야 해요 (둘 다 하락폭)'; }
+      Object.keys(bad).forEach(k => { const e = $id('shF_' + k); if (e) e.classList.toggle('bad', !!bad[k]); });
+      $id('shErr').textContent = msg;
+      $id('shSave').disabled = Object.values(bad).some(Boolean) || !!this.busy;
+    },
+    collect(){
+      const v = this.v, n = k => fnum(v[k]);
+      const t = { sell: r4(n('sell') / 100), sellWatch: r4(n('sellWatch') / 100), buyWatch: -r4(n('buyWatch') / 100), buy: -r4(n('buy') / 100) };
+      const nm = v.name.trim(), ko = !!v.krOnly, seed = n('seed'), kr = n('cashKRW'), us = n('cashUSD');
+      return { msg: '계좌 설정을 저장했어요',
+        mut: d => { const A = target(d); A.name = nm; A.seed = seed; A.cashKRW = kr; A.cashUSD = us; A.krOnly = ko; A.thresholds = t; },
+        undo: d => { const A = target(d); A.name = snap.name; A.seed = snap.seed; A.cashKRW = snap.cashKRW; A.cashUSD = snap.cashUSD; A.krOnly = snap.krOnly; A.thresholds = clone(snap.thresholds); } };
+    },
+    del(){
+      return { msg: '계좌를 삭제했어요',
+        mut: d => { const A = target(d); d.accounts.splice(d.accounts.indexOf(A), 1); },
+        undo: d => { d.accounts.splice(Math.min(ai, d.accounts.length), 0, clone(acopy)); } };
+    }
+  });
+}
+function shStep(k, delta){
+  const cur = fnum(SH.v[k]); const base = isNaN(cur) ? 0 : cur;
+  SH.v[k] = String(Math.max(0, r4(base + delta)));
+  const el = $id('shI_' + k); if (el) el.value = SH.v[k];
+  SH.upd();
+}
+// ---- 설정 창 (전략 · 섹터 목표 · 계좌 추가) ----
+function openSettingsSheet(){
+  if (!DATA) return;
+  const st = DATA.settings || {};
+  const pc = x => x != null ? String(r4(x * 100)) : '';
+  const snapSettings = clone(st), snapSectors = clone(DATA.sectors || []);
+  const nw0 = st.nasdaqWeight != null ? st.nasdaqWeight : 0.85, kw0 = st.kospiWeight != null ? st.kospiWeight : 0.25;
+  openSheet({
+    title: '설정',
+    v: { peak: pc(st.peakStockRatio), dom: pc(st.domesticTargetRatio), mdd: pc(st.maxDrawdownAssumption), nw: String(nw0), kw: String(kw0),
+         sectors: snapSectors.map(s => ({ name: s.name, target: String(s.target != null ? s.target : 0) })), newSector: '' },
+    body(){ const self = this; const ff = (label, k, unit) => `<div class="sh-field"><label>${label}</label><div class="sh-in" id="shF_${k}"><input inputmode="decimal" autocomplete="off" value="${esc(self.v[k])}" oninput="SH.v.${k}=this.value;SH.upd()"><span class="u">${unit}</span></div></div>`;
+      return `
+      <div class="sh-sec" style="margin-top:6px">전략</div>
+      ${ff('최고점 기준 주식비중', 'peak', '%')}${ff('국장 목표 배분', 'dom', '%')}${ff('최대 낙폭 가정', 'mdd', '%')}
+      <div class="sh-row2">${ff('나스닥 가중치', 'nw', '')}${ff('코스피 가중치', 'kw', '')}</div>
+      <div class="cmp-hint">나스닥·코스피 가중치를 바꾸면 저장 전에 경고가 떠요</div>
+      <div class="sh-sec">섹터 목표 비중</div>
+      ${this.v.sectors.map((s, i) => `<div class="sh-srow"><span class="n">${esc(s.name)}</span>
+        <div class="sh-in" id="shS_${i}"><input inputmode="decimal" autocomplete="off" value="${esc(s.target)}" oninput="SH.v.sectors[${i}].target=this.value;SH.upd()"><span class="u">%</span></div>
+        <span class="ef-del" onclick="shSecDel(${i})">✕</span></div>`).join('')}
+      <div class="sh-srow"><div class="sh-in" style="flex:1"><input autocomplete="off" placeholder="새 섹터 이름" value="${esc(this.v.newSector)}" oninput="SH.v.newSector=this.value"></div>
+        <button class="edit-mini-btn save" type="button" onclick="shSecAdd()">추가</button></div>
+      <div class="sh-sec">계좌</div>
+      <button class="ef-add-btn" style="margin-top:0" type="button" onclick="shAddAcct()">＋ 새 계좌 추가</button>`; },
+    upd(){
+      const v = this.v; let bad = false;
+      ['peak', 'dom', 'mdd'].forEach(k => { const b = v[k].trim() !== '' && isNaN(fnum(v[k])); bad = bad || b; const e = $id('shF_' + k); if (e) e.classList.toggle('bad', b); });
+      ['nw', 'kw'].forEach(k => { const b = isNaN(fnum(v[k])); bad = bad || b; const e = $id('shF_' + k); if (e) e.classList.toggle('bad', b); });
+      v.sectors.forEach((s, i) => { const b = isNaN(fnum(s.target)) || fnum(s.target) > 100; bad = bad || b; const e = $id('shS_' + i); if (e) e.classList.toggle('bad', b); });
+      $id('shSave').disabled = bad || !!this.busy;
+    },
+    collect(){
+      const v = this.v, n = k => fnum(v[k]);
+      const peak = v.peak.trim() === '' ? null : n('peak') / 100, dom = v.dom.trim() === '' ? null : n('dom') / 100, mdd = v.mdd.trim() === '' ? null : n('mdd') / 100;
+      const nw = n('nw'), kw = n('kw');
+      const sectors = v.sectors.map(s => ({ name: s.name, target: fnum(s.target) }));
+      const names = new Set(sectors.map(s => s.name));
+      const removed = snapSectors.filter(s => !names.has(s.name)).map(s => s.name);
+      const held = []; (DATA.accounts || []).forEach(a => (a.holdings || []).forEach(h => { if (removed.includes(h.sector)) held.push([a.id, qkey(h), h.sector]); }));
+      const warn = nw !== nw0 || kw !== kw0;
+      return { warn, msg: '설정을 저장했어요',
+        mut: d => {
+          d.settings = d.settings || {};
+          if (peak != null) d.settings.peakStockRatio = r4(peak); if (dom != null) d.settings.domesticTargetRatio = r4(dom); if (mdd != null) d.settings.maxDrawdownAssumption = r4(mdd);
+          d.settings.nasdaqWeight = nw; d.settings.kospiWeight = kw;
+          const prev = d.sectors || [];
+          d.sectors = sectors.map(s => Object.assign({}, prev.find(p => p.name === s.name) || {}, s));
+          if (removed.length) (d.accounts || []).forEach(a => (a.holdings || []).forEach(h => { if (removed.includes(h.sector)) h.sector = ''; }));
+        },
+        undo: d => {
+          d.settings = clone(snapSettings); d.sectors = clone(snapSectors);
+          held.forEach(([aid, k, sec]) => { const A = findAcc(d, aid), H = A && findH(A, k); if (H) H.sector = sec; });
+        } };
+    }
+  });
+}
+function shSecDel(i){
+  const s = SH.v.sectors[i]; if (!s) return;
+  if (!confirm(`'${s.name}' 섹터를 삭제할까요?\n이 섹터가 할당된 종목은 '미지정'으로 바뀝니다. (저장해야 반영돼요)`)) return;
+  SH.v.sectors.splice(i, 1); $id('shBody').innerHTML = SH.body(); SH.upd();
+}
+function shSecAdd(){
+  const name = (SH.v.newSector || '').trim(); if (!name) return;
+  if (SH.v.sectors.some(s => s.name === name)) { alert('이미 있는 섹터입니다'); return; }
+  SH.v.sectors.push({ name, target: '0' }); SH.v.newSector = '';
+  $id('shBody').innerHTML = SH.body(); SH.upd();
+}
+async function shAddAcct(){
+  if (!SH || SH.busy) return;
+  if (shDirty() && !confirm('지금까지 바꾼 내용은 저장되지 않아요. 계속할까요?')) return;
+  const id = newAccountId();
+  closeSheetNow();
+  try {
+    await commit(d => { d.accounts = d.accounts || []; d.accounts.push({ id, name: '새 계좌', seed: 0, cashKRW: 0, cashUSD: 0, krOnly: false,
+      thresholds: { sell: 0.06, sellWatch: 0.03, buyWatch: -0.03, buy: -0.06 }, holdings: [] }); });
+    openAcctSheet(id);
+  } catch(e) { alert('계좌 추가 실패: ' + (e.message || String(e))); }
 }
 
 function initGoogle(){
@@ -652,12 +1030,12 @@ function setUpdatedLabel(){
   renderStale();
 }
 
-// ==== 자동 반영: 화면을 보고 있으면 1분마다 최신 시세·다른 기기 수정을 받아온다 (수정 모드 중엔 멈춤) ====
+// ==== 자동 반영: 화면을 보고 있으면 1분마다 최신 시세·다른 기기 수정을 받아온다 (수정 창이 열려 있는 동안은 멈춤) ====
 let lastTouch = 0, liveBusy = false;
 ['pointerdown','keydown'].forEach(ev => window.addEventListener(ev, () => { lastTouch = Date.now(); }, true));
 async function refreshLive(force){
-  if (!accessToken || !folderId || liveBusy || editMode || document.visibilityState !== 'visible') return;
-  if (document.getElementById('trendModal')) return;
+  if (!accessToken || !folderId || liveBusy || document.visibilityState !== 'visible') return;
+  if (document.getElementById('trendModal') || document.getElementById('sheet')) return;
   if (!force && Date.now() - lastTouch < 20000) return;
   liveBusy = true;
   try {
@@ -673,7 +1051,7 @@ async function refreshLive(force){
       PORTFOLIO_RAW = await driveFetch(`https://www.googleapis.com/drive/v3/files/${f.id}?alt=media`);
       currentFileId = f.id; portfolioModified = f.modifiedTime; changed = true;
     }
-    if (changed && !editMode) { DATA = mergeView(PORTFOLIO_RAW, PRICES_RAW); render(); }
+    if (changed && !document.getElementById('sheet')) { DATA = mergeView(PORTFOLIO_RAW, PRICES_RAW); render(); }
     setUpdatedLabel();
   } catch(e) { console.warn('자동 반영 실패', e); }
   finally { liveBusy = false; }
@@ -1191,13 +1569,7 @@ function renderSummaryPage(){
   const nw = settings.nasdaqWeight != null ? settings.nasdaqWeight : 0.85;
   const kw = settings.kospiWeight != null ? settings.kospiWeight : 0.25;
   const plainPct = v => v != null ? (v*100).toFixed(1)+'%' : '-';
-  const stratBody = editMode
-    ? `<div class="ef-row"><label>최고점 기준 주식비중(%)</label><input class="ef-input" value="${settings.peakStockRatio!=null?(settings.peakStockRatio*100):''}" onchange="setStrategySetting('peakStockRatio',this.value)"></div>
-       <div class="ef-row"><label>국장 목표 배분(%)</label><input class="ef-input" value="${settings.domesticTargetRatio!=null?(settings.domesticTargetRatio*100):''}" onchange="setStrategySetting('domesticTargetRatio',this.value)"></div>
-       <div class="ef-row"><label>최대 낙폭 가정(%)</label><input class="ef-input" value="${settings.maxDrawdownAssumption!=null?(settings.maxDrawdownAssumption*100):''}" onchange="setStrategySetting('maxDrawdownAssumption',this.value)"></div>
-       <div class="ef-row"><label>나스닥 가중치</label><input class="ef-input" value="${nw}" onchange="confirmSetWeight('nasdaqWeight',this.value)"></div>
-       <div class="ef-row"><label>코스피 가중치</label><input class="ef-input" value="${kw}" onchange="confirmSetWeight('kospiWeight',this.value)"></div>`
-    : `<div class="market-grid">
+  const stratBody = `<div class="market-grid">
         <div class="mkt-cell"><div class="mkt-k">최고점 기준 주식비중</div><div class="mkt-v">${plainPct(settings.peakStockRatio)}</div></div>
         <div class="mkt-cell"><div class="mkt-k">국장 목표 배분</div><div class="mkt-v">${plainPct(settings.domesticTargetRatio)}</div></div>
         <div class="mkt-cell"><div class="mkt-k">최대 낙폭 가정</div><div class="mkt-v">${plainPct(settings.maxDrawdownAssumption)}</div></div>
@@ -1207,31 +1579,9 @@ function renderSummaryPage(){
     ${foldHeader('전략 설정','strategy')}
     <div class="fold-body ${isFolded('strategy')?'hidden':''}">
       ${stratBody}
-      ${editMode ? `<div class="cmp-hint" style="margin-top:8px">나스닥·코스피 가중치는 변경 시 경고가 뜹니다</div>` : ''}
+      <div class="cmp-hint" style="margin-top:8px">값을 바꾸려면 우측 상단 설정 버튼을 누르세요</div>
     </div>
   </div>`;
-
-  // ---- 섹터 목표 가중치 (수정 모드에서만 편집 UI 노출) ----
-  if (editMode) {
-    const sectors = DATA.sectors || [];
-    html += `<div class="chart-card">
-      ${foldHeader('섹터 목표 가중치','sectorMgmt')}
-      <div class="fold-body ${isFolded('sectorMgmt')?'hidden':''}">
-        ${sectors.map(s => `
-          <div class="ef-row">
-            <label style="width:auto;flex:1;color:var(--ink)">${esc(s.name)}</label>
-            <input class="ef-input" style="width:70px;flex:0 0 70px" value="${s.target!=null?s.target:0}" onchange="setSectorTargetMobile(${jsa(s.name)},this.value)">
-            <span class="ef-del" onclick="deleteSectorMobile(${jsa(s.name)})">✕</span>
-          </div>`).join('')}
-        <div style="display:flex;gap:6px;margin-top:6px">
-          <input class="ef-input" id="newSectorName" placeholder="새 섹터명" style="flex:1">
-          <button class="ef-add-btn" style="flex:0 0 auto;padding:8px 12px;width:auto" onclick="addSectorMobile()">＋ 추가</button>
-        </div>
-      </div>
-    </div>`;
-  }
-
-  html += editMode ? `<div class="footer-note">수정 후 우측 상단 저장 버튼을 눌러야 반영됩니다</div>` : '';
 
   document.getElementById('page-summary').innerHTML = html;
   renderProfitChips();
@@ -1239,73 +1589,8 @@ function renderSummaryPage(){
   renderSectorAcctSel();
 }
 
-// ==== 수정 모드에서 쓰는 편집 함수들 (PC의 app.py index.html과 동일 로직) ====
-function setH(ai, hi, k, v){
-  const h = DATA.accounts[ai].holdings[hi];
-  h[k] = k === 'code' ? String(v).trim().toUpperCase() : (k === 'name' ? v : (parseFloat(String(v).replace(/,/g,'')) || 0));
-  render();
-}
-function delH(ai, hi){
-  if (!confirm('이 종목을 삭제할까요?')) return;
-  DATA.accounts[ai].holdings.splice(hi, 1);
-  render();
-}
-function addH(ai){
-  const mktEl = document.getElementById('mkt-' + ai);
-  const codeEl = document.getElementById('code-' + ai);
-  const mkt = mktEl.value;
-  const code = codeEl.value.trim().toUpperCase();
-  if (!code) return;
-  DATA.accounts[ai].holdings.push({ market: mkt, code, name: '', qty: 0, avgPrice: 0, price: 0 });
-  codeEl.value = '';
-  render();
-}
-function setCash(ai, k, v){
-  DATA.accounts[ai][k] = parseFloat(String(v).replace(/,/g,'')) || 0;
-  render();
-}
-function setKrOnly(ai, checked){
-  DATA.accounts[ai].krOnly = checked;
-  render();
-}
-function setTh(ai, k, v){
-  const nv = parseFloat(v);
-  DATA.accounts[ai].thresholds = DATA.accounts[ai].thresholds || {};
-  DATA.accounts[ai].thresholds[k] = isNaN(nv) ? undefined : nv / 100;
-  render();
-}
-function renameAccount(ai){
-  const cur = DATA.accounts[ai].name;
-  const v = prompt('계좌 이름 변경', cur);
-  if (!v || !v.trim()) return;
-  DATA.accounts[ai].name = v.trim();
-  render();
-}
-function addAccount(){
-  DATA.accounts.push({ id: newAccountId(), name: '새 계좌', seed: 0, cashKRW: 0, cashUSD: 0, krOnly: false,
-    thresholds: { sell: 0.06, sellWatch: 0.03, buyWatch: -0.03, buy: -0.06 }, holdings: [] });
-  render();
-}
-function deleteAccount(ai){
-  const nm = DATA.accounts[ai].name;
-  if (!confirm(`'${nm}' 계좌를 삭제할까요?\n이 계좌의 종목·설정이 모두 사라집니다.`)) return;
-  DATA.accounts.splice(ai, 1);
-  render();
-}
-
-function setStrategySetting(k, v){
-  const nv = parseFloat(v);
-  if (!isNaN(nv)) DATA.settings[k] = nv / 100;
-  render();
-}
 // 나스닥·코스피 가중치는 PC(app.py index.html)의 setWeight()와 완전히 동일한 경고 문구로 확인받는다
 let _pendingWeightConfirm = null;
-function confirmSetWeight(k, v){
-  const nv = parseFloat(v);
-  if (isNaN(nv)) { render(); return; }
-  _pendingWeightConfirm = () => { DATA.settings[k] = nv; render(); };
-  showWeightWarningModal();
-}
 function showWeightWarningModal(){
   closeTrendModal();
   const el = document.createElement('div'); el.id = 'trendModal'; el.className = 'modal-overlay';
@@ -1330,28 +1615,6 @@ function applyWeightConfirm(){
 function cancelWeightConfirm(){
   closeTrendModal();
   _pendingWeightConfirm = null;
-  render();   // 취소 시 입력값 원복(화면 다시 그림)
-}
-
-function setSectorTargetMobile(name, val){
-  const s = (DATA.sectors || []).find(x => x.name === name);
-  if (s) { s.target = Math.max(0, Math.min(100, parseFloat(val) || 0)); render(); }
-}
-function deleteSectorMobile(name){
-  if (!confirm(`'${name}' 섹터를 삭제할까요?\n이 섹터가 할당된 종목은 '미지정'으로 바뀝니다.`)) return;
-  DATA.sectors = (DATA.sectors || []).filter(s => s.name !== name);
-  (DATA.accounts || []).forEach(a => (a.holdings || []).forEach(h => { if (h.sector === name) h.sector = ''; }));
-  render();
-}
-function addSectorMobile(){
-  DATA.sectors = DATA.sectors || [];
-  const inp = document.getElementById('newSectorName');
-  const name = (inp.value || '').trim();
-  if (!name) return;
-  if (DATA.sectors.some(s => s.name === name)) { alert('이미 있는 섹터입니다'); return; }
-  DATA.sectors.push({ name, target: 0 });
-  inp.value = '';
-  render();
 }
 
 function renderAccountsPage(){
@@ -1367,37 +1630,7 @@ function renderAccountsPage(){
     grandTotal += r.total; grandProfit += r.profit;
     const open = !!openAccts[acc.id];
 
-    const holdingsHtml = editMode
-      ? (r.rows.map(row => {
-          const h = acc.holdings[row.hi];
-          return `
-        <div class="ef-row" style="flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:8px;margin-bottom:8px">
-          <div style="width:100%;display:flex;align-items:center;gap:6px">
-            <span style="font-size:10px;color:var(--dim);width:28px">${row.isUS?'미장':'국장'}</span>
-            <input class="ef-input" style="flex:1" value="${esc(h.code||'')}" onchange="setH(${ai},${row.hi},'code',this.value)" placeholder="종목코드">
-            <span class="ef-del" onclick="delH(${ai},${row.hi})">✕</span>
-          </div>
-          <div style="width:100%;display:flex;gap:6px;margin-top:5px">
-            <input class="ef-input" style="color:var(--dim)" value="${esc(h.name||'')}" readonly placeholder="종목명(자동 반영, 수정 불가)">
-          </div>
-          <div style="width:100%;display:flex;align-items:center;gap:6px;margin-top:5px">
-            <span style="font-size:11px;color:var(--dim);width:50px;flex-shrink:0">수량</span>
-            <input class="ef-input" style="width:90px;flex:0 0 90px" value="${h.qty?h.qty:''}" onchange="setH(${ai},${row.hi},'qty',this.value)">
-          </div>
-          <div style="width:100%;display:flex;align-items:center;gap:6px;margin-top:5px">
-            <span style="font-size:11px;color:var(--dim);width:50px;flex-shrink:0">평단가</span>
-            <input class="ef-input" style="width:90px;flex:0 0 90px" value="${h.avgPrice?h.avgPrice:''}" onchange="setH(${ai},${row.hi},'avgPrice',this.value)">
-          </div>
-        </div>`;
-        }).join('')
-        + `<div style="display:flex;gap:6px;margin-top:6px">
-             <select class="ef-input" id="mkt-${ai}" style="flex:0 0 68px">
-               <option value="KR">국장</option><option value="US">미장</option>
-             </select>
-             <input class="ef-input" id="code-${ai}" placeholder="종목코드 (예 005930)" style="flex:1">
-             <button class="ef-add-btn" style="flex:0 0 auto;padding:8px 12px;width:auto" onclick="addH(${ai})">＋ 추가</button>
-           </div>`)
-      : (r.rows.length
+    const holdingsHtml = (r.rows.length
       ? r.rows.map(row => {
           const priceStr = row.isUS
             ? `${numUS(row.avg)}/${numUS(row.price)} USD`
@@ -1405,7 +1638,7 @@ function renderAccountsPage(){
           const profitStr = row.profitKR==null ? '' : (row.profitKR>=0?'+':'')+won(row.profitKR)+'원 ';
           const rateStr = row.rate==null ? '-' : pct(row.rate);
           return `
-        <div class="h-row">
+        <div class="h-row" onclick="openItemSheet(${jsa(acc.id)},${row.hi})">
           ${logoImg(row, ai)}
           <div class="h-mid">
             <div class="h-name">${esc(row.name)}</div>
@@ -1417,7 +1650,8 @@ function renderAccountsPage(){
           </div>
         </div>`;
         }).join('')
-      : `<div class="h-empty">보유 종목 없음</div>`);
+      : `<div class="h-empty">보유 종목 없음</div>`)
+      + `<button class="ef-add-btn" onclick="event.stopPropagation();openAddSheet(${jsa(acc.id)})">＋ 종목 추가</button>`;
 
     const sigBadge = r.sig ? `<span class="sig-badge ${r.sig.cls}">${r.sig.text}</span>` : '';
     const gapLine = r.gap != null
@@ -1446,29 +1680,6 @@ function renderAccountsPage(){
         </div></div>`
       : '';
 
-    const th = acc.thresholds || {};
-    const editExtras = editMode ? `
-      <div class="ef-row"><label>계좌 이름</label>
-        <button class="ef-add-btn" style="margin-top:0" onclick="event.stopPropagation();renameAccount(${ai})">✎ 이름 변경</button>
-      </div>
-      <div class="ef-row"><label>시드</label><input class="ef-input" value="${acc.seed||0}" onchange="setCash(${ai},'seed',this.value)"></div>
-      <div class="ef-row"><label>예수금 ₩</label><input class="ef-input" value="${acc.cashKRW||0}" onchange="setCash(${ai},'cashKRW',this.value)"></div>
-      <div class="ef-row"><label>예수금 $</label><input class="ef-input" value="${acc.cashUSD||0}" onchange="setCash(${ai},'cashUSD',this.value)"></div>
-      <div class="ef-row"><label>국장 전용</label>
-        <input type="checkbox" ${acc.krOnly?'checked':''} onchange="setKrOnly(${ai},this.checked)">
-      </div>
-      <label style="font-size:11px;color:var(--dim);display:block;margin:8px 0 4px">매매 기준(%)</label>
-      <div class="ef-row" style="gap:6px">
-        <label style="width:auto">매도</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.sell!=null?(th.sell*100):6}" onchange="setTh(${ai},'sell',this.value)">
-        <label style="width:auto;margin-left:10px">매도 고려</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.sellWatch!=null?(th.sellWatch*100):3}" onchange="setTh(${ai},'sellWatch',this.value)">
-      </div>
-      <div class="ef-row" style="gap:6px">
-        <label style="width:auto">매수</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.buy!=null?(th.buy*100):-6}" onchange="setTh(${ai},'buy',this.value)">
-        <label style="width:auto;margin-left:10px">매수 고려</label><input class="ef-input" style="width:52px;flex:0 0 52px" value="${th.buyWatch!=null?(th.buyWatch*100):-3}" onchange="setTh(${ai},'buyWatch',this.value)">
-      </div>
-      <button class="ef-add-btn" style="border-color:var(--up);color:var(--up)" onclick="event.stopPropagation();deleteAccount(${ai})">계좌 삭제</button>
-    ` : '';
-
     html += `<div class="acct ${open ? 'open' : ''}">
       <div class="acct-head" onclick="toggleAcct(${jsa(acc.id)})">
         <div>
@@ -1477,6 +1688,7 @@ function renderAccountsPage(){
           <div style="display:flex;gap:6px">
             <div class="thresh-btn" onclick="event.stopPropagation();showThresholdPopup(${ai})">매매 기준</div>
             <div class="thresh-btn" onclick="event.stopPropagation();showCashPopup(${ai})">예수금</div>
+            <div class="thresh-btn" onclick="event.stopPropagation();openAcctSheet(${jsa(acc.id)})">⚙ 설정</div>
           </div>
         </div>
         <div style="display:flex;align-items:center">
@@ -1491,16 +1703,11 @@ function renderAccountsPage(){
       ${gapLine}
       ${gapDetail}
       <div class="holdings">
-        ${editExtras}
         ${pieHtml}
         ${holdingsHtml}
       </div>
     </div>`;
   });
-
-  if (editMode) {
-    html += `<button class="ef-add-btn" style="margin-bottom:16px" onclick="addAccount()">＋ 새 계좌 추가</button>`;
-  }
 
   html += `<div class="grand">
     <div>
@@ -1522,11 +1729,11 @@ function logoImg(row, ai){
   if (!list.length) return `<span class="h-avatar">${esc(letter)}</span>`;
   const json = esc(JSON.stringify(list));
   const idAttrs = (ai != null && row.hi != null) ? `data-ai="${ai}" data-hi="${row.hi}"` : '';
-  const clickAttr = (ai != null && row.hi != null) ? `onclick="logoCycle(this)" style="cursor:pointer"` : '';
+  const clickAttr = (ai != null && row.hi != null) ? `onclick="event.stopPropagation();logoCycle(this)" style="cursor:pointer"` : '';
   return `<img class="h-logo" src="${esc(list[0])}" data-cands="${json}" data-i="0" ${idAttrs} ${clickAttr} onerror="logoFallback(this)">`;
 }
-// 앰블럼을 탭하면 다음 후보로 순환한다. 다른 수정과 달리, 이 기능만 예외로
-// 수정 모드와 무관하게 클릭 즉시 조용히 구글 드라이브에 저장된다.
+// 앰블럼을 탭하면 다음 후보로 순환한다. 다른 수정과 달리, 이 기능은
+// 클릭 즉시 조용히 구글 드라이브에 저장된다.
 async function logoCycle(img){
   let list = []; try{ list = JSON.parse(img.getAttribute('data-cands')); }catch(e){}
   if (!list.length) return;
@@ -1551,7 +1758,6 @@ async function logoCycle(img){
     return true;
   };
   pin();
-  if (editMode) return;   // 수정 모드 중이면 '저장' 때 함께 저장됨
   try {
     try { await driveSave(); }
     catch(e) {
