@@ -12,13 +12,42 @@
 - 계산 로직은 같은 폴더의 core.py 에 있다(PC 와 같은 파일).
 """
 import os
+import socket
+import ssl
 import sys
 import time
+import urllib.error
 
 import core
 
 
+def _transient(e):
+    """일시적인 통신 문제(시간 초과·서버 5xx·연결 끊김)인가? 로그인 만료·설정 오류는 해당 없음."""
+    if isinstance(e, core.ApiError):
+        return e.status in (0, 408, 429) or e.status >= 500
+    if isinstance(e, urllib.error.HTTPError):
+        return e.code in (408, 429) or e.code >= 500
+    return isinstance(e, (urllib.error.URLError, socket.timeout, TimeoutError, ConnectionError, ssl.SSLError, OSError))
+
+
 def main():
+    """일시적인 통신 오류는 한 번 더 시도하고, 그래도 안 되면 이번 회차만 건너뛴다(실패 메일 방지).
+    1분마다 다시 돌기 때문에 한 번 건너뛰어도 다음 회차가 이어받는다. 진짜 문제(로그인 만료 등)는 실패로 남긴다."""
+    last = None
+    for i in range(2):
+        try:
+            return _run()
+        except Exception as e:
+            if not _transient(e):
+                raise
+            last = e
+            print(f"[재시도 {i + 1}/2] 일시적인 통신 오류: {e}")
+            time.sleep(4)
+    print(f"[건너뜀] 통신 오류가 이어져 이번 회차는 건너뜁니다(다음 회차에 다시 시도): {last}")
+    return 0
+
+
+def _run():
     now = core.utcnow()
     force = os.environ.get("FORCE_RUN", "").lower() in ("1", "true", "yes")
     stamp = core.to_kst(now).strftime("%Y-%m-%d %H:%M KST")
@@ -38,6 +67,8 @@ def main():
     try:
         token, _ = core.refresh_access_token(client_id, client_secret, refresh_token)
     except Exception as e:
+        if _transient(e):
+            raise            # 통신 문제면 main() 이 재시도/건너뜀 처리
         print(f"[오류] 구글 로그인 실패 — PC 리밸런서에서 '키 재인증'을 눌러주세요.\n  {e}")
         return 1
     drive = core.Drive(lambda: token)
